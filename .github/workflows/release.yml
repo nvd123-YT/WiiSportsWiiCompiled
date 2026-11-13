@@ -53,9 +53,12 @@ jobs:
 
       - name: Package DMG
         run: |
+          mkdir -p dist/dmg
+          ditto "build/launcher/Wii Sports Recomp.app" "dist/dmg/Wii Sports Recomp.app"
+          ln -s /Applications "dist/dmg/Applications"
           hdiutil create \
             -volname "Wii Sports Recomp" \
-            -srcfolder "build/launcher/Wii Sports Recomp.app" \
+            -srcfolder "dist/dmg" \
             -ov -format UDZO \
             "WiiSportsRecomp-macos-${{ matrix.arch }}.dmg"
           shasum -a 256 "WiiSportsRecomp-macos-${{ matrix.arch }}.dmg" > "SHA256-${{ matrix.arch }}.txt"
