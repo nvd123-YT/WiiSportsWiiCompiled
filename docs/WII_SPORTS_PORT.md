@@ -59,7 +59,7 @@ Run:
 bash tools/build_wii_sports_macos.sh
 ```
 
-The script extracts the disc only when no extracted filesystem exists. It reuses a non-empty `analysis/dol_functions.csv` export and the supplied symbol CSVs by default; set `WII_SPORTS_REIMPORT_GHIDRA=1` to rerun headless Ghidra. It then translates the DOL and REL modules, recompiles DSP code, configures the native target, builds and runs `build/out/wiisports`.
+The script extracts the disc only when no extracted filesystem exists. It reuses a non-empty `analysis/dol_functions.csv` export and the supplied symbol CSVs by default; set `WII_SPORTS_REIMPORT_GHIDRA=1` to rerun headless Ghidra. It then translates the DOL and REL modules and runs the DSP translation step. The DSP checksum catalogue is intentionally empty until Wii Sports microcode hashes are verified, so the existing DSP interpreter handles audio microcode in this initial integration. Finally it configures the native target, builds and runs `build/out/wiisports`.
 
 ## Processor Interface MMIO
 
