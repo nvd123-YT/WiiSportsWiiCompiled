@@ -769,5 +769,7 @@ class Emitter:
         return lines
 
     def op_rfi(self, i):
-        self.unsupported.append("rfi")
-        return [f'wp::unsupported_instruction(c, {u32(i.addr)}, "rfi");']
+        # Interrupt delivery is represented by a host call. Returning from the
+        # translated exception handler hands control back to that shim, which
+        # restores the interrupted Cpu context and resumes the guest.
+        return ["return;"]

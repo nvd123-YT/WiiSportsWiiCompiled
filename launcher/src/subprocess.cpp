@@ -350,7 +350,13 @@ int Process::wait() {
             return -1;
         }
     }
-    return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    if (WIFSIGNALED(status)) {
+        return 128 + WTERMSIG(status);
+    }
+    return 1;
 }
 
 void Process::kill() {

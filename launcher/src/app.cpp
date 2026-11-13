@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -585,6 +586,30 @@ void App::frame() {
             picked_folder_.clear();
         }
     }
+    if (game_was_running_ && game_monitor_ && game_monitor_->state.load() == 2) {
+        game_was_running_ = false;
+        if (game_hid_launcher_) {
+            SDL_ShowWindow(window_);
+            SDL_RaiseWindow(window_);
+        }
+        game_hid_launcher_ = false;
+        const int code = game_monitor_->exit_code.load();
+        if (code != 0) {
+            char shown_code[16]{};
+            std::snprintf(shown_code, sizeof(shown_code), "0x%08X", static_cast<uint32_t>(code));
+            game_crash_message_ = format(texts().game_crash_detail, shown_code);
+            if (!game_monitor_->launch_error.empty()) {
+                game_crash_message_ += "\n" + game_monitor_->launch_error;
+            }
+            game_crash_pending_ = true;
+            result_.clear();
+            outcome_ = Outcome::Failure;
+        } else {
+            result_ = texts().game_closed;
+            outcome_ = Outcome::Success;
+        }
+    }
+
     runner_.take_output(log_);
     if (log_.size() > kLogLimit) {
         log_.erase(log_.begin(), log_.begin() + static_cast<long>(log_.size() - kLogLimit));
@@ -636,6 +661,7 @@ void App::frame() {
     titlebar::draw(window_, viewport->Pos, viewport->Size.x);
     restore_modal();
     repair_modal();
+    game_crash_modal();
     ImGui::End();
 }
 
@@ -1217,6 +1243,51 @@ void App::repair_modal() {
             repair_confirm_ = false;
             ImGui::CloseCurrentPopup();
             repair();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar(3);
+}
+
+void App::game_crash_modal() {
+    const ui::Palette& p = ui::palette();
+    const Texts& t = texts();
+    if (game_crash_pending_ && !ImGui::IsPopupOpen("game-crash")) {
+        ImGui::OpenPopup("game-crash");
+    }
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(px(440), 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(px(24), px(22)));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, px(16));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, px(16));
+    if (ImGui::BeginPopupModal("game-crash", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings)) {
+        const float inner = px(440) - px(48);
+        ui::text(t.game_crash_title, Font::Semibold, 17.0f, p.text);
+        ui::gap(8);
+        ui::text(game_crash_message_.c_str(), Font::Regular, ui::size::kBody, p.secondary, inner);
+        ui::gap(24);
+        ImVec2 at = ImGui::GetCursorScreenPos();
+        const float log_width = px(150);
+        const float play_width = px(110);
+        const float close_width = px(86);
+        const float gap = px(8);
+        const float total = log_width + play_width + close_width + gap * 2;
+        ImGui::SetCursorScreenPos(ImVec2(at.x + inner - total, at.y));
+        if (ui::button(t.game_crash_open_log, Kind::Secondary, 150.0f)) {
+            const std::string url = folder_url(project_.root / "logs" / "game-console.log");
+            SDL_OpenURL(url.c_str());
+        }
+        ImGui::SetCursorScreenPos(ImVec2(at.x + inner - close_width - gap - play_width, at.y));
+        if (ui::button(t.game_crash_play_again, Kind::Primary, 110.0f)) {
+            game_crash_pending_ = false;
+            ImGui::CloseCurrentPopup();
+            play();
+        }
+        ImGui::SetCursorScreenPos(ImVec2(at.x + inner - close_width, at.y));
+        if (ui::button(t.cancel, Kind::Ghost, 86.0f)) {
+            game_crash_pending_ = false;
+            ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
     }
@@ -2337,6 +2408,7 @@ void App::play() {
     bool building = runner_.running();
     std::error_code logs;
     std::filesystem::create_directories(project_.root / "logs", logs);
+    const std::filesystem::path console_log = project_.root / "logs" / "game-console.log";
     SDL_setenv_unsafe("WP_LOG_FILE", utf8_of(std::filesystem::absolute(project_.root / "logs" / "game.log", logs)).c_str(), 1);
     if (swap_pending_ && !building) {
         std::string error;
@@ -2346,13 +2418,49 @@ void App::play() {
     std::filesystem::permissions(project_.executable(), std::filesystem::perms::owner_exec | std::filesystem::perms::group_exec | std::filesystem::perms::others_exec,
                                  std::filesystem::perm_options::add, logs);
 #endif
-    std::string launch_error;
-    if (!start_detached(utf8_of(project_.executable()), project_.root, &launch_error)) {
-        result_ = texts().start_failed;
-        if (!launch_error.empty()) result_ += ": " + launch_error;
-        outcome_ = Outcome::Failure;
-        return;
-    }
+    const std::filesystem::path executable = project_.executable();
+    const std::filesystem::path root = project_.root;
+    auto monitor = std::make_shared<GameMonitorState>();
+    monitor->state.store(1);
+    game_monitor_ = monitor;
+    game_was_running_ = true;
+    game_crash_pending_ = false;
+    game_crash_message_.clear();
+    result_.clear();
+    game_hid_launcher_ = pref("living_room") != "1";
+
+    // Keep the launcher process alive while the game runs. The detached
+    // monitor owns all state it touches, so closing the launcher is safe.
+    std::thread([monitor, executable, root, console_log] {
+        std::ofstream output(console_log, std::ios::binary | std::ios::trunc);
+        Process process;
+        std::string error;
+        if (!process.start(utf8_of(executable), {}, root, false, error)) {
+            monitor->launch_error = error;
+            if (output) {
+                output << "Could not start Wii Sports: " << error << '\n';
+                output.flush();
+            }
+            monitor->exit_code.store(-1);
+            monitor->state.store(2);
+            return;
+        }
+        char buffer[4096];
+        while (size_t count = process.read(buffer, sizeof(buffer))) {
+            if (output) {
+                output.write(buffer, static_cast<std::streamsize>(count));
+                output.flush();
+            }
+        }
+        const int code = process.wait();
+        if (output) {
+            output << "\n[launcher] Wii Sports exited with code " << code << '\n';
+            output.flush();
+        }
+        monitor->exit_code.store(code);
+        monitor->state.store(2);
+    }).detach();
+
     if (!building) {
         int count = std::atoi(pref("profiles.count").c_str());
         if (count < 1) {
@@ -2366,10 +2474,11 @@ void App::play() {
         set_pref(sessions_key.c_str(), std::to_string(sessions + 1));
         std::string last_key = "profiles.last_played." + std::to_string(active);
         set_pref(last_key.c_str(), std::to_string(static_cast<long long>(std::time(nullptr))));
-        if (pref("living_room") == "1") {
-            result_ = "Game launched. Living-Room Mode keeps the launcher available to return to after playing.";
-        } else {
-            quit_ = true;
-        }
+    }
+
+    if (game_hid_launcher_) {
+        SDL_HideWindow(window_);
+    } else {
+        result_ = "Game launched. Living-Room Mode keeps the launcher available to return to after playing.";
     }
 }

@@ -5,6 +5,7 @@
 #include <atomic>
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <set>
 #include <mutex>
 #include <thread>
@@ -49,6 +50,12 @@ struct Capture {
     int height = 0;
     bool tried = false;
     bool selected = false;
+};
+
+struct GameMonitorState {
+    std::atomic<int> state{0}; // 0 idle, 1 running, 2 finished
+    std::atomic<int> exit_code{0};
+    std::string launch_error;
 };
 
 enum class Page { Game, Settings, Saves, Controls, Textures, Miis, Captures, System, Licenses, Players, Count };
@@ -127,6 +134,7 @@ private:
     void choose_added_disc();
     void switch_version(const std::string& id);
     void restore_modal();
+    void game_crash_modal();
     void launcher_update_card(float width);
     void repair_modal();
     void repair();
@@ -156,6 +164,11 @@ private:
     bool was_running_ = false;
     bool show_details_ = false;
     bool started_ = false;
+    std::shared_ptr<GameMonitorState> game_monitor_ = std::make_shared<GameMonitorState>();
+    bool game_was_running_ = false;
+    bool game_hid_launcher_ = false;
+    bool game_crash_pending_ = false;
+    std::string game_crash_message_;
     std::vector<std::string> log_;
     std::string log_text_;
     std::string result_;

@@ -261,6 +261,11 @@ struct Texts {
     const char* captures_close;
     const char* captures_save_crops;
     const char* captures_clear_area;
+    const char* game_crash_title;
+    const char* game_crash_detail;
+    const char* game_crash_open_log;
+    const char* game_crash_play_again;
+    const char* game_closed;
 };
 
 void use_language(const std::string& code);

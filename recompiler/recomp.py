@@ -149,6 +149,7 @@ def render_function(start, instrs, entries, dol, stats, replacements, save_conte
             continue
         if instr.mn is None:
             stats["illegal"] += 1
+            stats["illegal_words"].add((instr.addr, instr.word, start))
         body.extend("    " + line for line in emitter.emit(instr))
     if end in emitter.resume_points:
         body.append(f"{resume_label(end)}:")
@@ -222,7 +223,7 @@ def main():
     bodies = build_bodies(dol, entries)
     entries = sorted(bodies)
     entry_set = set(entries)
-    stats = {"functions": 0, "instructions": 0, "illegal": 0, "jump_tables": 0, "unresolved_jumps": 0, "replaced": 0, "unsupported": collections.Counter(), "resumes": []}
+    stats = {"functions": 0, "instructions": 0, "illegal": 0, "illegal_words": set(), "jump_tables": 0, "unresolved_jumps": 0, "replaced": 0, "unsupported": collections.Counter(), "resumes": []}
 
     chunks = []
     current = []
@@ -240,6 +241,10 @@ def main():
     print(f"illegal words {stats['illegal']}, jump tables {stats['jump_tables']}, unresolved indirect jumps {stats['unresolved_jumps']}")
     print(f"replaced by runtime handlers {stats['replaced']}")
     print(f"unsupported {dict(stats['unsupported'])}")
+    if stats["illegal_words"]:
+        print("illegal instruction candidates (address, word, containing function):")
+        for address, word, function in sorted(stats["illegal_words"]):
+            print(f"  {address:08X}: {word:08X} (function {function:08X})")
     return 0
 
 

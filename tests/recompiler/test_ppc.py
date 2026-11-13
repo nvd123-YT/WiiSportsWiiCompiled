@@ -59,6 +59,9 @@ class DecoderTests(unittest.TestCase):
     def test_unknown_word(self):
         self.assertIsNone(Instr(0, 0x00000001).mn)
 
+    def test_rfi_encoding(self):
+        self.assertEqual(Instr(0, 0x4C000064).mn, "rfi")
+
 
 class MaskTests(unittest.TestCase):
     def test_rotate_mask(self):
@@ -209,6 +212,9 @@ class EmitterTests(unittest.TestCase):
     def test_double_arithmetic_keeps_second_lane(self):
         fadd = (63 << 26) | (1 << 21) | (2 << 16) | (3 << 11) | (21 << 1)
         self.assertEqual(lift(fadd), ["c.f[1] = c.f[2] + c.f[3];"])
+
+    def test_rfi_returns_to_interrupt_dispatcher(self):
+        self.assertEqual(lift(0x4C000064), ["return;"])
 
     def test_illegal_word(self):
         self.assertEqual(lift(1), ["wp::illegal_instruction(c, 0x80004000u, 0x1u);"])

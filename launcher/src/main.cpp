@@ -162,6 +162,9 @@ int main(int argc, char** argv) {
         SDL_Event event;
         if (idle) {
             if (!SDL_WaitEventTimeout(&event, 500)) {
+                // The launcher can be hidden while a game process is monitored.
+                // Keep polling its exit state so a crash reopens the UI promptly.
+                draw_frame();
                 continue;
             }
             if (!app.consume(event)) {
