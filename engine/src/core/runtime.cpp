@@ -189,19 +189,19 @@ void print_call_stack() {
     size_t count = capture_host_frames(frames);
 #ifndef _WIN32
     char** native_symbols = backtrace_symbols(frames, static_cast<int>(count));
-    std::fprintf(stderr, "raw native stack (innermost first):\\n");
+    std::fprintf(stderr, "raw native stack (innermost first):\n");
     for (size_t i = 0; i < count; i++) {
         if (native_symbols) {
-            std::fprintf(stderr, "  #%02zu %s\\n", i, native_symbols[i]);
+            std::fprintf(stderr, "  #%02zu %s\n", i, native_symbols[i]);
         } else {
-            std::fprintf(stderr, "  #%02zu %p\\n", i, frames[i]);
+            std::fprintf(stderr, "  #%02zu %p\n", i, frames[i]);
         }
     }
     std::free(native_symbols);
 #else
-    std::fprintf(stderr, "raw native stack (innermost first):\\n");
+    std::fprintf(stderr, "raw native stack (innermost first):\n");
     for (size_t i = 0; i < count; i++) {
-        std::fprintf(stderr, "  #%02zu %p\\n", i, frames[i]);
+        std::fprintf(stderr, "  #%02zu %p\n", i, frames[i]);
     }
 #endif
     static const std::vector<HostFunction> functions = host_functions();
