@@ -9,6 +9,8 @@ void start() {
     log::write("video", "build %s without a window", WP_BUILD);
 }
 
+void run_event_loop(const std::atomic<bool>&) {}
+
 void present() {
     gx::process();
 }
