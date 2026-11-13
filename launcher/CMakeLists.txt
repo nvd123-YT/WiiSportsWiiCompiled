@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(wii_recomp_launcher C CXX)
+project(wii_sports_recomp_launcher C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -82,9 +82,9 @@ add_executable(launcher WIN32
 include(cmake/embed.cmake)
 
 if(APPLE)
-    set_target_properties(launcher PROPERTIES OUTPUT_NAME "Wii Party Recomp")
+    set_target_properties(launcher PROPERTIES OUTPUT_NAME "Wii Sports Recomp")
 else()
-    set_target_properties(launcher PROPERTIES OUTPUT_NAME wiipartyrecomp-launcher)
+    set_target_properties(launcher PROPERTIES OUTPUT_NAME wiisportsrecomp-launcher)
 endif()
 target_include_directories(launcher PRIVATE ${WP_ENGINE}/include src)
 target_include_directories(launcher SYSTEM PRIVATE ${WP_ENGINE}/../third_party/stb)
@@ -104,8 +104,8 @@ elseif(APPLE)
     # -static-libstdc++/-static-libgcc flags.
     set_target_properties(launcher PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.nvdemu.wiipartyrecomp"
-        MACOSX_BUNDLE_BUNDLE_NAME "Wii Party Recomp"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.nvdemu.wiisportsrecomp"
+        MACOSX_BUNDLE_BUNDLE_NAME "Wii Sports Recomp"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${WP_LAUNCHER_VERSION}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${WP_MACOS_BUNDLE_VERSION}")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
