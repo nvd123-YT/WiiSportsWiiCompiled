@@ -215,6 +215,27 @@ void Toolchain::add_to_path() const {
         setenv("GHIDRA_HOME", utf8_of(ghidra_home).c_str(), 1);
 #endif
     }
+
+    // Ghidra discovers extensions from both its installation folder and the
+    // per-user settings folder. Keep this launcher instance isolated so an
+    // existing user-installed GameCubeLoader cannot collide with our managed
+    // copy (and do not delete or modify the user's normal Ghidra profile).
+    std::error_code settings_error;
+    std::filesystem::path settings = std::filesystem::absolute(folder_ / "ghidra-settings", settings_error);
+    if (!settings_error) {
+        std::string options = environment_value("JDK_JAVA_OPTIONS");
+        if (!options.empty()) {
+            options += " ";
+        }
+        options += "-Dapplication.settingsdir=\\\"";
+        options += settings.generic_u8string();
+        options += "\\\"";
+#ifdef _WIN32
+        _putenv_s("JDK_JAVA_OPTIONS", options.c_str());
+#else
+        setenv("JDK_JAVA_OPTIONS", options.c_str(), 1);
+#endif
+    }
     prepend_path(folders);
 }
 

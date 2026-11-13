@@ -41,6 +41,8 @@ The GUI launcher automatically provisions its analysis environment on first setu
 
 Each archive is downloaded from its upstream release and verified against a pinned SHA-256 digest before extraction. The launcher keeps the tools in its managed cache under `build/deps/toolchain`, so no admin privileges, system Java installation, or manual `GHIDRA_HOME` setup are required. If you already have a valid Ghidra 12.1 installation with the GameCube Loader and JDK 21, the importer can also use your configured environment.
 
+Ghidra's settings directory is isolated at `build/deps/toolchain/ghidra-settings`. This prevents a second GameCube Loader in the user's normal Ghidra profile from colliding with the launcher's managed extension. The launcher does not delete or alter extensions in the user's existing Ghidra profile.
+
 The analysis importer reuses a valid `games/wiisports/analysis/dol_functions.csv` on later builds. To deliberately run the analysis again:
 
 ```sh
