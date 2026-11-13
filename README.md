@@ -20,7 +20,7 @@ For the first build, install Ghidra 12 with the GameCube Loader and the PowerPC:
 
 ## Runtime architecture
 
-The shared runtime provides a PowerPC CPU/lifter, guest memory, OS threads and context switching, MMIO, IOS, disc and NAND services, REL module dispatch, GX graphics, DSP audio, keyboard/gamepad input and Wii Remote support. On macOS it uses SDL3 and OpenGL.
+The shared runtime provides a PowerPC CPU/lifter, guest memory, OS threads and context switching, MMIO, IOS, disc and NAND services, REL module dispatch, GX graphics, DSP audio, keyboard/gamepad input and Wii Remote support. The current Wii Sports analysis has no verified DSP microcode signatures yet, so audio microcode runs through the shared DSP interpreter until the title's checksum and code are validated. On macOS the runtime uses SDL3 and OpenGL.
 
 The game target is configured under games/wiisports/; general runtime code lives under engine/. The default local workflow is:
 
