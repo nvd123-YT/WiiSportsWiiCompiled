@@ -9,7 +9,6 @@ BUILD_DIR="$ROOT/build/out"
 JOBS="$(sysctl -n hw.ncpu 2>/dev/null || printf '4')"
 
 export WP_GAME=wiisports
-export GHIDRA_HOME="${GHIDRA_HOME:-$HOME/Tools/ghidra_12.1.4_PUBLIC}"
 
 fail() {
     printf 'error: %s\n' "$*" >&2
@@ -35,13 +34,16 @@ fi
 NEED_GHIDRA=0
 FUNCTION_LINES="$(awk 'END { print NR + 0 }' "$GAME_DIR/analysis/dol_functions.csv" 2>/dev/null || printf '0')"
 if [ "$FUNCTION_LINES" -lt 2 ] || [ "${WII_SPORTS_REIMPORT_GHIDRA:-0}" = "1" ]; then
-    [ -x "$GHIDRA_HOME/support/analyzeHeadless" ] || fail "Ghidra headless launcher not found at $GHIDRA_HOME/support/analyzeHeadless; set GHIDRA_HOME"
     NEED_GHIDRA=1
 fi
 
 if [ "$NEED_GHIDRA" = "1" ]; then
     printf '\n== Import Wii Sports into Ghidra and export function metadata ==\n'
-    python3 "$ROOT/tools/ghidra_import.py"
+    if [ "${WII_SPORTS_REIMPORT_GHIDRA:-0}" = "1" ]; then
+        python3 "$ROOT/tools/ghidra_import.py" --force
+    else
+        python3 "$ROOT/tools/ghidra_import.py"
+    fi
 else
     printf '\n== Reusing existing Ghidra function export ==\n'
 fi
