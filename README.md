@@ -25,19 +25,29 @@ SHA-256 checksum files are attached to each release.
 4. Keep the suggested install folder or choose another folder with enough free space, then select **Install**.
 5. When the build finishes, select **Play**.
 
-The launcher verifies the disc, extracts it locally, prepares the required compiler tools, performs Ghidra analysis when needed, translates the DOL and REL modules, and compiles the native game. Missing compiler/build tools are downloaded from their official sources and checked against pinned SHA-256 hashes. The launcher does **not** download the game itself.
+The launcher verifies the disc, extracts it locally, prepares the compiler and analysis tools, performs Ghidra analysis when needed, translates the DOL and REL modules, and compiles the native game. Missing tools are downloaded from their official upstream releases and checked against pinned SHA-256 hashes. The launcher does **not** download the game itself.
 
-A fresh install needs approximately **5 GB of free space** for the game build. If you already have a complete extracted filesystem, it needs less space.
+On the first online install, the launcher also downloads and manages **Eclipse Temurin JDK 21**, **Ghidra 12.1.4**, and the **GameCube Loader 1.3.1 extension**. They are cached under the selected game folder in `build/deps/toolchain`; later builds reuse them. Java and Ghidra do not need to be installed system-wide or added to your shell environment. The downloads total roughly 780 MB before extraction. Offline mode works after the required tools have been cached or supplied in the offline tools pack.
 
-### Ghidra requirement
+A fresh install should have approximately **8 GB of free space** for the game build and managed analysis tools. If you already have a complete extracted filesystem, approximately 7 GB should be available.
 
-Ghidra 12 with the GameCube Loader extension and the processor language `PowerPC:BE:32:Gekko_Broadway` is required for the first analysis unless a valid function export is already present. Ghidra is a separate install and is not bundled with the launcher.
+### Managed Java and Ghidra
 
-The importer checks `PATH` and common installation folders on macOS, Windows and Linux. When it cannot find Ghidra automatically, set `GHIDRA_HOME` to the Ghidra installation directory. A valid `games/wiisports/analysis/dol_functions.csv` file is reused on later builds. To deliberately run the analysis again:
+The GUI launcher automatically provisions its analysis environment on first setup:
+
+- **Eclipse Temurin JDK 21.0.13+9**, configured as the launcher's `JAVA_HOME`.
+- **Ghidra 12.1.4**, configured as `GHIDRA_HOME`.
+- **GameCube Loader 1.3.1**, installed into Ghidra's `Ghidra/Extensions` folder. It supplies the GameCube DOL/REL loader and the `PowerPC:BE:32:Gekko_Broadway` processor language used by this project.
+
+Each archive is downloaded from its upstream release and verified against a pinned SHA-256 digest before extraction. The launcher keeps the tools in its managed cache under `build/deps/toolchain`, so no admin privileges, system Java installation, or manual `GHIDRA_HOME` setup are required. If you already have a valid Ghidra 12.1 installation with the GameCube Loader and JDK 21, the importer can also use your configured environment.
+
+The analysis importer reuses a valid `games/wiisports/analysis/dol_functions.csv` on later builds. To deliberately run the analysis again:
 
 ```sh
 python tools/ghidra_import.py --force
 ```
+
+The standalone shell build helper does not run the launcher's dependency manager; when using it directly, provide JDK 21 and Ghidra 12.1.4 with the GameCube Loader yourself.
 
 ## macOS window behavior
 
@@ -85,7 +95,7 @@ The first release attempt built all four packages successfully but GitHub denied
 
 ## Build locally on macOS
 
-Requirements: Xcode Command Line Tools, Python 3, CMake, Ninja, Ghidra 12 with the GameCube Loader, and a legally obtained Wii Sports disc image. The launcher normally manages the pinned game-build tools for you; the standalone helper expects `nodtool` on `PATH` when extraction is required.
+Requirements: Xcode Command Line Tools, Python 3, CMake, Ninja, JDK 21, Ghidra 12.1.4 with the GameCube Loader, and a legally obtained Wii Sports disc image. The standalone helper also expects `nodtool` on `PATH` when extraction is required.
 
 Put the disc image at `games/wiisports/disc/wiisports.rvz`, or pass its path as the first argument. Alternatively, put a fully extracted Wii Sports filesystem under `games/wiisports/extracted/`.
 

@@ -13,7 +13,7 @@ root = Path(__file__).resolve().parent.parent
 work = root / "build" / "offline"
 downloads = work / "downloads"
 stage = work / "stage"
-launcher = root / "build" / "launcher" / "wiipartyrecomp-launcher.exe"
+launcher = root / "build" / "launcher" / "wiisportsrecomp-launcher.exe"
 output = root / "build" / "wiipartyrecomp-offline-windows.zip"
 sources_output = root / "build" / "wiipartyrecomp-sources.zip"
 SDL_FILE = "SDL3-devel-3.4.16-mingw.tar.gz"
@@ -49,7 +49,7 @@ GPL_SOURCES = [
     ("https://github.com/AppImage/type2-runtime/archive/refs/tags/20251108.tar.gz", "type2-runtime-20251108.tar.gz"),
 ]
 
-NOTICE = """Wii Party Recomp - offline tools pack for Windows
+NOTICE = """Wii Sports Recomp - offline tools pack for Windows
 
 Unzip this folder anywhere and open wiipartyrecomp-launcher.exe. The launcher uses the
 tools in the tools folder next to it and never downloads them. Turn on Offline mode in
@@ -66,6 +66,9 @@ Licences:
 - Python: Python Software Foundation License (tools/python/LICENSE.txt)
 - CMake: BSD 3-Clause License (tools/cmake/cmake-4.4.3-windows-x86_64/doc/cmake/LICENSE.rst)
 - Ninja: Apache License 2.0 (https://github.com/ninja-build/ninja)
+- Eclipse Temurin JDK: GNU GPL version 2 with the Classpath Exception (https://adoptium.net/temurin/)
+- Ghidra: Apache License 2.0 (https://github.com/NationalSecurityAgency/ghidra)
+- GameCube Loader extension: Apache License 2.0 (https://github.com/Cuyler36/Ghidra-GameCube-Loader)
 - SDL3: zlib License (https://github.com/libsdl-org/SDL)
 - GCC and binutils: GNU General Public License version 3; GCC's runtime libraries carry
   the GCC Runtime Library Exception. GMP, MPFR and MPC (built into GCC): GNU LGPL
@@ -94,9 +97,22 @@ def remove_tree(path):
 
 def packages():
     text = (root / "launcher" / "src" / "toolchain.cpp").read_text(encoding="utf-8")
-    block = text[text.index("#ifdef _WIN32\nconstexpr Package kPackages[]"):text.index("constexpr const char* kPython = \"python\";")]
-    pattern = re.compile(r'\{"([^"]+)", "([^"]+)", "([^"]+)",\s*"([0-9a-f]{64})", "([^"]+)", Packaging::(\w+), "([^"]+)",\s*"([^"]+)"\}')
-    return [dict(zip(("program", "name", "url", "sha256", "file", "packaging", "folder", "bin"), match)) for match in pattern.findall(block)]
+    block = text[text.index("#ifdef _WIN32\nconstexpr Package kPackages[]"):text.index('constexpr const char* kPython = "python";')]
+    pattern = re.compile(
+        r'\{"([^"]+)", "([^"]+)", "([^"]+)",\s*"([0-9a-f]{64})",\s*"([^"]+)",\s*'
+        r'Packaging::(\w+), "([^"]+)",\s*(nullptr|"[^"]*")'
+        r'(?:,\s*(?:nullptr|"[^"]*"))?(?:,\s*(true|false))?(?:,\s*"([^"]+)")?\s*\}'
+    )
+    result = []
+    for match in pattern.findall(block):
+        program, name, url, digest, filename, packaging, folder, binary, merge, home = match
+        result.append({
+            "program": program, "name": name, "url": url, "sha256": digest,
+            "file": filename, "packaging": packaging, "folder": folder,
+            "bin": binary.strip('"') if binary != "nullptr" else None,
+            "merge": merge == "true", "home": home or None,
+        })
+    return result
 
 
 def download(url, name):
@@ -135,12 +151,13 @@ def prune_mingw(folder):
 
 def unpack(package, archive):
     destination = stage / "tools" / package["folder"]
-    remove_tree(destination)
-    destination.mkdir(parents=True)
+    if not package["merge"]:
+        remove_tree(destination)
+    destination.mkdir(parents=True, exist_ok=True)
     kind = package["packaging"]
     if kind == "Single":
         shutil.copy2(archive, destination / f"{package['program']}.exe")
-    elif kind == "Archive":
+    elif kind in ("Archive", "Zip"):
         with zipfile.ZipFile(archive) as bundle:
             bundle.extractall(destination)
     else:

@@ -169,3 +169,14 @@ The following materials are strictly prohibited from entering this repository un
 - Original Wii Sports game resources (`main.dol`, `.rel` modules, ISO dumps, textures, models, audio).
 
 *Note: The local paths `games/wiisports/disc/`, `games/wiisports/extracted/`, and `reference/` must remain permanently enforced in `.gitignore` [3].*
+
+
+## Launcher-managed Java and Ghidra downloads
+
+The GUI launcher downloads these upstream components on first game setup when they are not already available in its local tool cache. Downloads are checked against pinned SHA-256 hashes and are not embedded in the small launcher installers:
+
+- Eclipse Temurin JDK 21.0.13+9, provided by the Eclipse Adoptium project. License: GNU GPL version 2 with the Classpath Exception. https://adoptium.net/temurin/
+- Ghidra 12.1.4, provided by the National Security Agency. License: Apache License 2.0. https://github.com/NationalSecurityAgency/ghidra
+- GameCube Loader extension 1.3.1 for Ghidra 12.1, provided by Cuyler. License: Apache License 2.0. https://github.com/Cuyler36/Ghidra-GameCube-Loader
+
+These dependencies remain in the user's selected local toolchain cache. They are not redistributed as part of the Wii Sports Recomp launcher installers.
