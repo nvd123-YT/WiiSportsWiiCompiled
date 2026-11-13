@@ -17,8 +17,8 @@ OUTPUT = GAME.module_code
 DOL_HEADER = GAME.dol_code / "functions.h"
 DOL_TARGETS = GAME.module_targets
 LINES_PER_FILE = 40000
-OSSAVECONTEXT = GAME.sdk["os_save_context"]
-SETJMP = GAME.sdk["setjmp"]
+OSSAVECONTEXT = GAME.sdk.get("os_save_context")
+SETJMP = GAME.sdk.get("setjmp")
 MFLR_R0 = 0x7C0802A6
 FNV_PRIME = 16777619
 FNV_OFFSET = 2166136261
@@ -204,7 +204,9 @@ def render_function(name, module, start, instrs, entries, relocations_by_site, d
     for targets in tables.values():
         labels.update(t for t in targets if start <= t < end)
     emitter = ModuleEmitter(
-        name, module.module_id, start, end, entries, tables, relocations_by_site, dol_entries, ("dol", OSSAVECONTEXT), ("dol", SETJMP)
+        name, module.module_id, start, end, entries, tables, relocations_by_site, dol_entries,
+        ("dol", OSSAVECONTEXT) if OSSAVECONTEXT is not None else None,
+        ("dol", SETJMP) if SETJMP is not None else None
     )
     body = []
     for instr in instrs:
