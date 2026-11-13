@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}-${{ github.run_attempt }}
@@ -24,6 +24,8 @@ jobs:
             arch: arm64
           - runner: macos-15-intel
             arch: x86_64
+    permissions:
+      contents: read
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out source
@@ -77,6 +79,8 @@ jobs:
 
   windows:
     name: Windows x64
+    permissions:
+      contents: read
     runs-on: windows-2025
     steps:
       - name: Check out source
@@ -136,6 +140,8 @@ jobs:
 
   linux:
     name: Linux x86_64 AppImage
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     steps:
       - name: Check out source
