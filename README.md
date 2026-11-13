@@ -8,13 +8,13 @@ The launcher builds the game locally from a Wii Sports disc image supplied by th
 
 ## Download and install
 
-Open the project's GitHub Releases and download the newest release for your platform:
+Open the [GitHub Releases page](https://github.com/nvd123-YT/wiiparty-recomp-better/releases) and download the newest release for your platform:
 
 - **macOS:** Apple Silicon or Intel DMG — open it and move **Wii Sports Recomp.app** into Applications.
 - **Windows:** wiisportsrecomp-launcher.exe or the ZIP.
 - **Linux:** wiisportsrecomp-launcher-x86_64.AppImage.
 
-Launch the app, choose your legally obtained Wii Sports ISO/RVZ/WBFS image, select the install folder, and press **Install**. The launcher downloads and verifies required build tools from their official sources, extracts the disc, performs Ghidra analysis when a function export is not already present, translates the game and builds the native executable. Your disc image, extracted data, Ghidra project, generated C++ and saves stay on your computer.
+Launch the app, choose your legally obtained Wii Sports ISO/RVZ/WBFS image, select the install folder, and press **Install**. The launcher downloads and verifies required build tools from their official sources, extracts the disc, performs Ghidra analysis when a function export is not already present, translates the game and builds the native executable. The first build can take longer because Ghidra must identify and export the DOL's function boundaries. Your disc image, extracted data, Ghidra project, generated C++ and saves stay on your computer.
 
 For the first build, install Ghidra 12 with the GameCube Loader and the PowerPC:BE:32:Gekko_Broadway language. On macOS the default location is ~/Tools/ghidra_12.1.4_PUBLIC. On other platforms set GHIDRA_HOME to the Ghidra installation directory. A valid existing games/wiisports/analysis/dol_functions.csv export is reused automatically; use python tools/ghidra_import.py --force to rerun Ghidra.
 
