@@ -1,0 +1,47 @@
+name: Wii Sports runtime checks
+
+on:
+  push:
+    branches:
+      - wii-sports-runtime
+  pull_request:
+    branches:
+      - main
+      - wii-sports-runtime
+
+permissions:
+  contents: read
+
+jobs:
+  macos-runtime:
+    name: macOS runtime and PI MMIO tests
+    runs-on: macos-14
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Ensure Ninja is available
+        run: |
+          if ! command -v ninja >/dev/null 2>&1; then
+            brew install ninja
+          fi
+
+      - name: Configure shared Wii runtime
+        run: |
+          cmake -S . -B build/ci -G Ninja \
+            -DWP_GAME=wiisports \
+            -DWP_FETCH_SDL3=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build runtime and translator test targets
+        run: |
+          cmake --build build/ci --parallel 4 \
+            --target pi_tests runtime_tests translator_tests
+
+      - name: Run tests
+        run: ctest --test-dir build/ci --output-on-failure
