@@ -32,8 +32,19 @@ fi
 [ -f "$EXTRACTED/sys/main.dol" ] || fail "extraction did not produce sys/main.dol"
 [ -f "$EXTRACTED/sys/boot.bin" ] || fail "extraction did not produce sys/boot.bin"
 
-printf '\n== Import Wii Sports into Ghidra and export function metadata ==\n'
-python3 "$ROOT/tools/ghidra_import.py"
+NEED_GHIDRA=0
+FUNCTION_LINES="$(awk 'END { print NR + 0 }' "$GAME_DIR/analysis/dol_functions.csv" 2>/dev/null || printf '0')"
+if [ "$FUNCTION_LINES" -lt 2 ] || [ "${WII_SPORTS_REIMPORT_GHIDRA:-0}" = "1" ]; then
+    [ -x "$GHIDRA_HOME/support/analyzeHeadless" ] || fail "Ghidra headless launcher not found at $GHIDRA_HOME/support/analyzeHeadless; set GHIDRA_HOME"
+    NEED_GHIDRA=1
+fi
+
+if [ "$NEED_GHIDRA" = "1" ]; then
+    printf '\n== Import Wii Sports into Ghidra and export function metadata ==\n'
+    python3 "$ROOT/tools/ghidra_import.py"
+else
+    printf '\n== Reusing existing Ghidra function export ==\n'
+fi
 
 printf '\n== Unpack REL modules ==\n'
 python3 "$ROOT/recompiler/unpack_rels.py"
