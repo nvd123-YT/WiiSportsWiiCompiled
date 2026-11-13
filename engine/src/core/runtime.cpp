@@ -187,8 +187,25 @@ size_t capture_host_frames(void** frames) {
 void print_call_stack() {
     void* frames[kHostFrames];
     size_t count = capture_host_frames(frames);
+#ifndef _WIN32
+    char** native_symbols = backtrace_symbols(frames, static_cast<int>(count));
+    std::fprintf(stderr, "raw native stack (innermost first):\\n");
+    for (size_t i = 0; i < count; i++) {
+        if (native_symbols) {
+            std::fprintf(stderr, "  #%02zu %s\\n", i, native_symbols[i]);
+        } else {
+            std::fprintf(stderr, "  #%02zu %p\\n", i, frames[i]);
+        }
+    }
+    std::free(native_symbols);
+#else
+    std::fprintf(stderr, "raw native stack (innermost first):\\n");
+    for (size_t i = 0; i < count; i++) {
+        std::fprintf(stderr, "  #%02zu %p\\n", i, frames[i]);
+    }
+#endif
     static const std::vector<HostFunction> functions = host_functions();
-    std::fprintf(stderr, "call stack from the host stack (innermost first):");
+    std::fprintf(stderr, "guest functions inferred from host frames (approximate):");
     size_t shown = 0;
     for (size_t i = 0; i < count && shown < kReportedFrames; i++) {
         uintptr_t address = reinterpret_cast<uintptr_t>(frames[i]);

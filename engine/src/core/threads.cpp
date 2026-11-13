@@ -503,8 +503,44 @@ void print_guest_registers() {
     if (!g_cpu) {
         return;
     }
-    std::fprintf(stderr, "guest registers: lr=%08x sp=%08x r3=%08x r4=%08x r5=%08x r6=%08x r7=%08x r30=%08x r31=%08x", g_cpu->lr, g_cpu->r[1],
-                 g_cpu->r[3], g_cpu->r[4], g_cpu->r[5], g_cpu->r[6], g_cpu->r[7], g_cpu->r[30], g_cpu->r[31]);
+    std::fprintf(stderr, "guest registers: lr=%08x sp=%08x msr=%08x ctr=%08x", g_cpu->lr, g_cpu->r[1], g_cpu->msr, g_cpu->ctr);
+    std::fputc(10, stderr);
+    for (uint32_t first = 0; first < 32; first += 8) {
+        std::fprintf(stderr, "  GPR r%02u-r%02u:", first, first + 7);
+        for (uint32_t reg = first; reg < first + 8; reg++) {
+            std::fprintf(stderr, " r%u=%08x", reg, g_cpu->r[reg]);
+        }
+        std::fputc(10, stderr);
+    }
+
+    // GameCube/Wii PPC stack frames store the previous SP at [SP] and the
+    // caller's LR at [previous SP + 4]. Validate each link before reading it.
+    auto guest_ram_address = [](uint32_t address, uint32_t bytes) {
+        if ((address & 3u) != 0) {
+            return false;
+        }
+        bool mem1 = address >= 0x80000000u && address < 0x81800000u;
+        bool mem2 = address >= 0x90000000u && address < 0x94000000u;
+        return (mem1 || mem2) && bytes <= 0x94000000u - address;
+    };
+    std::fprintf(stderr, "PPC guest stack (saved caller LR addresses, innermost first):");
+    uint32_t stack = g_cpu->r[1];
+    size_t frames = 0;
+    for (; frames < 24 && guest_ram_address(stack, 8); frames++) {
+        uint32_t previous = rd32(stack);
+        if (!guest_ram_address(previous, 8) || previous <= stack || previous - stack > 0x100000u) {
+            break;
+        }
+        uint32_t return_address = rd32(previous + 4);
+        std::fprintf(stderr, " %08x", return_address);
+        stack = previous;
+        if (return_address == 0) {
+            break;
+        }
+    }
+    if (frames == 0) {
+        std::fprintf(stderr, " <no valid backchain>");
+    }
     std::fputc(10, stderr);
     describe_loaded_modules(g_cpu->lr);
 }
