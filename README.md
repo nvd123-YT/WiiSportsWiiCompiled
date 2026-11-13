@@ -8,7 +8,7 @@ The launcher builds the game locally from a Wii Sports disc image supplied by th
 
 ## Download and install
 
-Open the [GitHub Releases page](https://github.com/nvd123-YT/wiiparty-recomp-better/releases) and download the newest release for your platform:
+Open this repository's **Releases** tab and download the newest release for your platform:
 
 - **macOS:** Apple Silicon or Intel DMG — open it and move **Wii Sports Recomp.app** into Applications.
 - **Windows:** wiisportsrecomp-launcher.exe or the ZIP.
