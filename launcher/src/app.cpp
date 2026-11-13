@@ -337,7 +337,7 @@ void App::launcher_update_card(float width) {
     }
     const ui::Palette& p = ui::palette();
     const Texts& t = texts();
-    std::string title = format(t.launcher_update_title, release.version == "Nightly" ? "Nightly build" : "v" + release.version);
+    std::string title = format(t.launcher_update_title, "v" + release.version);
     bool failed = launcher_state_ == 2;
     std::string detail = failed ? format(t.launcher_update_failed, failure) : std::string(t.launcher_update_detail);
     Card card(width);
