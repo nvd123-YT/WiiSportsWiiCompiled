@@ -3,11 +3,11 @@ name: Wii Sports runtime checks
 on:
   push:
     branches:
-      - wii-sports-runtime
+      - main
   pull_request:
     branches:
       - main
-      - wii-sports-runtime
+  workflow_dispatch:
 
 permissions:
   contents: read
