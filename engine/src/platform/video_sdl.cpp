@@ -31,6 +31,7 @@
 #include "wp/options_window.h"
 #include "wp/screenshot.h"
 #include "wp/settings.h"
+#include "wp/runtime.h"
 #include "wp/ui_text.h"
 
 namespace wp::video {
@@ -145,6 +146,7 @@ struct Window {
     bool finished = false;
     SDL_Window* window = nullptr;
     SDL_GLContext context = nullptr;
+    std::string error;
 };
 
 Window g_state;
@@ -336,20 +338,23 @@ void drain_events(SDL_Window* window) {
     }
 }
 
-void finish_start(SDL_Window* window, SDL_GLContext context) {
+void finish_start(SDL_Window* window, SDL_GLContext context, std::string error = {}) {
     std::lock_guard<std::mutex> hold(g_state.lock);
     g_state.window = window;
     g_state.context = context;
+    g_state.error = std::move(error);
     g_state.finished = true;
     g_state.changed.notify_all();
 }
 
-void window_thread(bool visible) {
+void create_window(bool visible) {
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
-        std::fprintf(stderr, "cannot open a window: %s\n", SDL_GetError());
-        finish_start(nullptr, nullptr);
+        std::string error = std::string("SDL video initialization failed: ") + SDL_GetError();
+        std::fprintf(stderr, "%s\n", error.c_str());
+        finish_start(nullptr, nullptr, std::move(error));
         return;
     }
+
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -357,9 +362,11 @@ void window_thread(bool visible) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
+
     int client_width = kWindowWidth;
     int client_height = static_cast<int>(client_width / g_aspect + 0.5);
     requested_window_size(client_width, client_height);
+
     SDL_Rect usable{};
     SDL_DisplayID display = SDL_GetPrimaryDisplay();
     if (display && SDL_GetDisplayUsableBounds(display, &usable)) {
@@ -368,53 +375,44 @@ void window_thread(bool visible) {
             client_height = static_cast<int>(client_width / g_aspect + 0.5);
         }
     }
-    SDL_WindowFlags flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS | (visible ? 0 : SDL_WINDOW_HIDDEN);
+
+    SDL_WindowFlags flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS |
+                            (visible ? 0 : SDL_WINDOW_HIDDEN);
     SDL_Window* window = SDL_CreateWindow(window_title(0.0).c_str(), client_width, client_height, flags);
     SDL_GLContext context = window ? SDL_GL_CreateContext(window) : nullptr;
     if (!context) {
-        std::fprintf(stderr, "cannot create an OpenGL 4.1 context: %s\n", SDL_GetError());
+        std::string error = std::string("OpenGL 4.1 window/context creation failed: ") + SDL_GetError();
+        std::fprintf(stderr, "%s\n", error.c_str());
         if (window) {
             SDL_DestroyWindow(window);
         }
-        finish_start(nullptr, nullptr);
+        finish_start(nullptr, nullptr, std::move(error));
         return;
     }
+
     titlebar::install(window);
     titlebar::set_title(window_title(0.0));
     SDL_SetWindowSize(window, client_width, client_height + titlebar::height(window));
-    SDL_GL_MakeCurrent(window, nullptr);
-    finish_start(window, context);
-    if (!visible) {
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
+    // The GL context is handed to the renderer thread after it starts.
+    if (!SDL_GL_MakeCurrent(window, nullptr)) {
+        std::string error = std::string("Could not release the initial OpenGL context: ") + SDL_GetError();
+        std::fprintf(stderr, "%s\n", error.c_str());
+        SDL_GL_DestroyContext(context);
+        SDL_DestroyWindow(window);
+        finish_start(nullptr, nullptr, std::move(error));
         return;
     }
-    g_window = window;
-    if (settings::flag("video.fullscreen", "WP_FULLSCREEN")) {
-        set_fullscreen(window, true);
+
+    if (visible) {
+        SDL_ShowWindow(window);
+        SDL_RaiseWindow(window);
+        g_window = window;
+    } else {
+        g_window = nullptr;
     }
-    bool cursor_hidden = false;
-    while (true) {
-        SDL_WaitEventTimeout(nullptr, kMenuPeriodMs);
-        drain_events(window);
-        if (g_title_changed.exchange(false)) {
-            std::string title;
-            {
-                std::lock_guard<std::mutex> hold(g_title_mutex);
-                title = g_title;
-            }
-            SDL_SetWindowTitle(window, title.c_str());
-            titlebar::set_title(title);
-        }
-        apply_option(window, options::poll_gamepads(window));
-        bool hide = hide_cursor() && !options::menu_open();
-        if (hide != cursor_hidden) {
-            cursor_hidden = hide;
-            if (hide) {
-                SDL_HideCursor();
-            } else {
-                SDL_ShowCursor();
-            }
-        }
-    }
+    finish_start(window, context);
 }
 
 std::tm local_time() {
@@ -509,8 +507,65 @@ void start() {
     log::write("video", "build %s", WP_BUILD);
     g_aspect = nand::widescreen() ? kWideAspect : kStandardAspect;
     apply_interface_language();
-    bool visible = std::getenv("WP_HEADLESS") == nullptr;
-    std::thread(window_thread, visible).detach();
+
+    const char* headless_value = std::getenv("WP_HEADLESS");
+    std::string headless = headless_value ? headless_value : "";
+    std::transform(headless.begin(), headless.end(), headless.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    bool visible = headless.empty() || (headless != "0" && headless != "false" && headless != "no" && headless != "off");
+
+    // SDL/AppKit window creation and event pumping must happen on the process main thread on macOS.
+    create_window(visible);
+
+    std::string error;
+    {
+        std::lock_guard<std::mutex> hold(g_state.lock);
+        error = g_state.error;
+        if (g_state.context == nullptr && error.empty()) {
+            error = "SDL did not create an OpenGL context for the game window.";
+        }
+    }
+    if (!error.empty()) {
+        fatal_error(error.c_str());
+    }
+    log::write("video", visible ? "visible window created on the main thread" : "headless OpenGL context created");
+}
+
+void run_event_loop(const std::atomic<bool>& finished) {
+    SDL_Window* window = g_window.load();
+    if (!window) {
+        return;
+    }
+
+    bool cursor_hidden = false;
+    while (!finished.load()) {
+        SDL_Event event{};
+        if (SDL_WaitEventTimeout(&event, kMenuPeriodMs)) {
+            handle_event(window, event);
+        }
+        drain_events(window);
+
+        if (g_title_changed.exchange(false)) {
+            std::string title;
+            {
+                std::lock_guard<std::mutex> hold(g_title_mutex);
+                title = g_title;
+            }
+            SDL_SetWindowTitle(window, title.c_str());
+            titlebar::set_title(title);
+        }
+
+        apply_option(window, options::poll_gamepads(window));
+        bool hide = hide_cursor() && !options::menu_open();
+        if (hide != cursor_hidden) {
+            cursor_hidden = hide;
+            if (hide) {
+                SDL_HideCursor();
+            } else {
+                SDL_ShowCursor();
+            }
+        }
+    }
 }
 
 void* window_handle() {
