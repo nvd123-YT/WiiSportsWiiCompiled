@@ -53,20 +53,38 @@ def valid_function_export(path):
         return False, 0
 
 
-def run_headless(command, label):
+def print_log_tails(paths, limit=80):
+    for path in paths:
+        if not path.is_file():
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError as error:
+            print(f"[ghidra] Could not read {path}: {error}", file=sys.stderr, flush=True)
+            continue
+        if not lines:
+            continue
+        print(f"[ghidra] --- last {min(limit, len(lines))} lines of {path.name} ---", flush=True)
+        for line in lines[-limit:]:
+            print(f"[ghidra-log] {line}", flush=True)
+
+
+def run_headless(command, label, log_paths=()):
     print(f"[ghidra] {label}", flush=True)
     try:
         result = subprocess.run(command, check=False)
     except OSError as error:
         print(f"[ghidra] Could not start {label}: {error}", file=sys.stderr, flush=True)
+        print_log_tails(log_paths)
         return 1
     if result.returncode:
         print(
             f"[ghidra] {label} failed with exit code {result.returncode}. "
-            "See the saved Ghidra and script logs in games/wiisports/analysis.",
+            "The relevant Ghidra log excerpts follow:",
             file=sys.stderr,
             flush=True,
         )
+        print_log_tails(log_paths)
     return result.returncode
 
 
@@ -130,6 +148,15 @@ def main():
         elif function_export.exists():
             print(f"Existing function export is invalid; rebuilding it: {function_export}")
 
+    # Once a reanalysis is requested, remove any previous export first.
+    # A failed Ghidra run must not leave metadata that a later normal launch
+    # could mistake for the output of the failed reanalysis.
+    try:
+        function_export.unlink(missing_ok=True)
+    except OSError as error:
+        print(f"error: could not remove stale function export {function_export}: {error}", file=sys.stderr)
+        return 1
+
     dol = GAME.dol
     if not dol.is_file():
         print(f"error: Wii game DOL not found: {dol}", file=sys.stderr)
@@ -174,7 +201,7 @@ def main():
         "-postScript", "FindFunctions.java",
         "-postScript", "ApplySymbols.java", str(GAME.dolphin_symbols), str(GAME.analysis / "symbols.csv"),
     ]
-    result = run_headless(command, "importing DOL and discovering functions")
+    result = run_headless(command, "importing DOL and discovering functions", (import_log, import_script_log))
     if result != 0:
         return result
 
@@ -193,7 +220,7 @@ def main():
         "-scriptPath", str(SCRIPTS),
         "-postScript", "ExportFunctions.java", str(candidate_export),
     ]
-    result = run_headless(export, "exporting discovered function metadata")
+    result = run_headless(export, "exporting discovered function metadata", (export_log, export_script_log))
     if result != 0:
         candidate_export.unlink(missing_ok=True)
         return result
