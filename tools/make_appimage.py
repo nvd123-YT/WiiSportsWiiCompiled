@@ -48,8 +48,20 @@ def main():
         print("run this on Linux", file=sys.stderr)
         return 1
     build_id = os.environ.get("GITHUB_SHA", "development")
-    subprocess.run(["cmake", "-S", str(root / "launcher"), "-B", str(arguments.build), "-G", "Ninja",
-                    "-DCMAKE_BUILD_TYPE=Release", "-UWP_LAUNCHER_VERSION", f"-DWP_LAUNCHER_BUILD={build_id}"], check=True)
+    run_number = os.environ.get("GITHUB_RUN_NUMBER")
+    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+    if run_number:
+        version = f"0.2.{run_number}-build.{run_attempt}.{build_id[:8]}"
+    else:
+        version = os.environ.get("WP_LAUNCHER_VERSION", "0.1.18-alpha")
+    update_repository = os.environ.get("GITHUB_REPOSITORY", "")
+    subprocess.run([
+        "cmake", "-S", str(root / "launcher"), "-B", str(arguments.build), "-G", "Ninja",
+        "-DCMAKE_BUILD_TYPE=Release",
+        f"-DWP_LAUNCHER_VERSION={version}",
+        f"-DWP_LAUNCHER_BUILD={build_id}",
+        f"-DWP_UPDATE_REPOSITORY={update_repository}",
+    ], check=True)
     subprocess.run(["cmake", "--build", str(arguments.build)], check=True)
     downloads = Path(tempfile.gettempdir()) / "wiisportsrecomp-appimage"
     tool = fetch(TOOL_URL, TOOL_SHA256, downloads)
