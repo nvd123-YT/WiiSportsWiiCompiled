@@ -2224,6 +2224,7 @@ void App::install(bool adding) {
         sdl_arguments.push_back("--offline");
     }
     program(t.step_sdl, python, sdl_arguments, 1.0f);
+    program(t.step_ghidra, python, {"tools/ghidra_import.py"}, 1.0f);
     program(t.step_unpack, python, {"recompiler/unpack_rels.py"}, 1.0f);
     program(t.step_dol, python, {"recompiler/recomp.py"}, 1.0f);
     program(t.step_modules, python, {"recompiler/recomp_rel.py", "--all"}, 3.0f);
