@@ -14,6 +14,7 @@ import game
 GAME = game.load()
 SCRIPTS = ROOT / "ghidra" / "scripts"
 LANGUAGE = "PowerPC:BE:32:Gekko_Broadway"
+ANALYSIS_VERSION = "2"
 
 
 def resolve_ghidra(home):
@@ -140,11 +141,23 @@ def main():
     args = parser.parse_args()
 
     function_export = GAME.analysis / "dol_functions.csv"
+    analysis_version_file = GAME.analysis / ".ghidra-import-version"
+    stored_version = ""
+    try:
+        stored_version = analysis_version_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+
     if not args.force:
         valid, count = valid_function_export(function_export) if function_export.is_file() else (False, 0)
-        if valid:
-            print(f"Reusing {count} existing Ghidra function records from {function_export}")
+        if valid and stored_version == ANALYSIS_VERSION:
+            print(f"Reusing {count} Ghidra function records from analysis version {stored_version}")
             return 0
+        if valid:
+            print(
+                "Existing function metadata was produced by an older or unknown "
+                "analysis pipeline; rerunning Ghidra to refresh it."
+            )
         elif function_export.exists():
             print(f"Existing function export is invalid; rebuilding it: {function_export}")
 
@@ -235,7 +248,11 @@ def main():
         )
         return 1
     candidate_export.replace(function_export)
-    print(f"Exported {count} Wii Sports DOL function records to {function_export}")
+    try:
+        analysis_version_file.write_text(ANALYSIS_VERSION + "\n", encoding="utf-8")
+    except OSError as error:
+        print(f"[ghidra] Warning: could not store analysis version marker: {error}", file=sys.stderr)
+    print(f"Exported {count} Wii Sports DOL function records using analysis version {ANALYSIS_VERSION} to {function_export}")
     return 0
 
 
