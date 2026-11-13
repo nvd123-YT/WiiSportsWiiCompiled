@@ -593,6 +593,19 @@ void App::frame() {
     if (was_running_ && !running) {
         finish_install();
     }
+    // Keep the read-only log widget backed by persistent storage so text
+    // selection remains stable after the process stops producing output.
+    std::string updated_log;
+    size_t log_bytes = 0;
+    for (const std::string& line : log_) log_bytes += line.size() + 1;
+    updated_log.reserve(log_bytes);
+    for (const std::string& line : log_) {
+        updated_log += line;
+        updated_log.push_back('\n');
+    }
+    if (updated_log != log_text_) {
+        log_text_ = std::move(updated_log);
+    }
     was_running_ = running;
     if (launcher_state_ == 3) {
         quit_ = true;
@@ -935,27 +948,27 @@ void App::progress_panel(float width, float height) {
         ui::gap(12);
         ImGui::BeginChild("log", ImVec2(width, std::max(px(80), room - steps_height - px(12))), ImGuiChildFlags_AlwaysUseWindowPadding,
                           ImGuiWindowFlags_HorizontalScrollbar);
-        std::string log_text;
-        for (const std::string& line : log_) {
-            log_text += line;
-            log_text.push_back('\n');
-        }
         if (ui::button("Copy log", Kind::Secondary, 92.0f)) {
-            ImGui::SetClipboardText(log_text.c_str());
+            ImGui::SetClipboardText(log_text_.c_str());
         }
         ImGui::SameLine();
-        ImGui::TextDisabled("Select text and press Cmd+C / Ctrl+C to copy a section");
-        ui::gap(6);
-        if (log_text.empty()) {
-            log_text = "No log output yet.";
+        if (!running && ui::button("Open log file", Kind::Secondary, 116.0f)) {
+            const std::filesystem::path path = project_.root / "build" / "install.log";
+            const std::string url = folder_url(path);
+            SDL_OpenURL(url.c_str());
         }
-        // InputTextMultiline is read-only but supports normal text selection and
-        // keyboard copying, unlike the previous TextUnformatted + ListClipper.
-        log_text.push_back('\0');
+        ImGui::SameLine();
+        ImGui::TextDisabled("Click in the log to select text; Cmd+C / Ctrl+C copies the selection");
+        ui::gap(6);
+        if (log_text_.empty()) {
+            log_text_ = "No log output yet.";
+        }
+        // Keep a stable, writable std::string buffer across frames. Read-only
+        // InputTextMultiline supports mouse selection and native copy shortcuts.
         ui::push_font(Font::Regular, ui::size::kDetail);
         ImGui::PushStyleColor(ImGuiCol_Text, p.secondary);
         ImVec2 log_area = ImGui::GetContentRegionAvail();
-        ImGui::InputTextMultiline("##install-log-text", log_text.data(), log_text.size(),
+        ImGui::InputTextMultiline("##install-log-text", log_text_.data(), log_text_.size() + 1,
                                   ImVec2(log_area.x, std::max(px(60), log_area.y)),
                                   ImGuiInputTextFlags_ReadOnly);
         ImGui::PopStyleColor();
@@ -2145,6 +2158,7 @@ void App::install(bool adding) {
         SDL_Delay(20);
     }
     log_.clear();
+    log_text_.clear();
     result_.clear();
     outcome_ = Outcome::None;
     last_step_ = -1;
@@ -2300,13 +2314,20 @@ void App::finish_install() {
         show_details_ = outcome_ == Outcome::Failure;
         result_ = outcome_ == Outcome::Cancelled ? t.build_cancelled : t.build_failed;
     }
-    if (install_mode_) {
-        std::error_code error;
-        std::filesystem::create_directories(project_.root / "build", error);
-        std::ofstream file(project_.root / "build" / "install.log", std::ios::binary | std::ios::trunc);
-        for (const std::string& line : log_) {
-            file << line << '\n';
+    // Save the complete build log for external viewing and selection, even
+    // when the launcher is running in its normal interactive mode.
+    std::error_code log_error;
+    const std::filesystem::path log_path = project_.root / "build" / "install.log";
+    std::filesystem::create_directories(log_path.parent_path(), log_error);
+    if (!log_error) {
+        std::ofstream file(log_path, std::ios::binary | std::ios::trunc);
+        if (file) {
+            for (const std::string& line : log_) {
+                file << line << '\n';
+            }
         }
+    }
+    if (install_mode_) {
         quit_ = true;
         exit_code_ = outcome_ == Outcome::Success ? 0 : 1;
     }

@@ -157,6 +157,7 @@ private:
     bool show_details_ = false;
     bool started_ = false;
     std::vector<std::string> log_;
+    std::string log_text_;
     std::string result_;
     Outcome outcome_ = Outcome::None;
     std::string disc_;

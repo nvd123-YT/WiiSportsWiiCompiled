@@ -48,3 +48,6 @@ jobs:
 
       - name: Run tests
         run: ctest --test-dir build/ci --output-on-failure
+
+      - name: Test DOL-only module table generation
+        run: python tools/recomp_rel_tests.py

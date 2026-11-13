@@ -224,18 +224,20 @@ void Toolchain::add_to_path() const {
     std::filesystem::path settings = std::filesystem::absolute(folder_ / "ghidra-settings", settings_error);
     if (!settings_error) {
         std::string options = environment_value("JDK_JAVA_OPTIONS");
-        if (!options.empty()) {
-            options += " ";
-        }
-        options += "-Dapplication.settingsdir=";
-        options += static_cast<char>(34);
-        options += settings.generic_u8string();
-        options += static_cast<char>(34);
+        const std::string settings_option = "-Dapplication.settingsdir=\"" + settings.generic_u8string() + "\"";
+        // add_to_path() is called before multiple child processes. Do not append
+        // the same Java option on every invocation.
+        if (options.find(settings_option) == std::string::npos) {
+            if (!options.empty() && options.back() != ' ') {
+                options.push_back(' ');
+            }
+            options += settings_option;
 #ifdef _WIN32
-        _putenv_s("JDK_JAVA_OPTIONS", options.c_str());
+            _putenv_s("JDK_JAVA_OPTIONS", options.c_str());
 #else
-        setenv("JDK_JAVA_OPTIONS", options.c_str(), 1);
+            setenv("JDK_JAVA_OPTIONS", options.c_str(), 1);
 #endif
+        }
     }
     prepend_path(folders);
 }

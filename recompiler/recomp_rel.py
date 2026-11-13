@@ -295,6 +295,8 @@ def write_table():
     lines += ["", "const ModuleDescriptor* const g_module_table[] = {"]
     lines += [f"    &g_descriptor_{n}," for n in names]
     lines += ["    nullptr,", "};", "", f"const size_t g_module_count = {len(names)};", "", "}"]
+    # DOL-only titles still need an empty module table for the runtime.
+    OUTPUT.mkdir(parents=True, exist_ok=True)
     table = OUTPUT / "modules_table.cpp"
     text = "\n".join(lines) + "\n"
     if not table.exists() or table.read_text() != text:
