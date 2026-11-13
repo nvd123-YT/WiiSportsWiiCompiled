@@ -397,7 +397,14 @@ def main():
     registry += ["", "}", "", "namespace wp::dsp {", "", "const TranslatedCode g_translated_code[] = {"]
     for _, crc, function in entries:
         registry.append(f"    {{0x{crc:08x}u, &generated::{function}}},")
-    registry += ["};", "", "const size_t g_translated_code_count = sizeof(g_translated_code) / sizeof(g_translated_code[0]);", "", "}", ""]
+    if not entries:
+        registry.append("    {0, nullptr},")
+    registry.append("};")
+    if entries:
+        registry += ["", "const size_t g_translated_code_count = sizeof(g_translated_code) / sizeof(g_translated_code[0]);"]
+    else:
+        registry += ["", "const size_t g_translated_code_count = 0;"]
+    registry += ["", "}",""]
     write_if_changed(out_dir / "registry.cpp", "\n".join(registry))
 
 

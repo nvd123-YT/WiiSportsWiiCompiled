@@ -28,18 +28,21 @@
 
 namespace {
 
-constexpr const char* kReleasesUrl = "https://api.github.com/repos/NVDEMU/wiiparty-recomp-better/releases?per_page=30";
-constexpr const char* kNightlyRefUrl = "https://api.github.com/repos/NVDEMU/wiiparty-recomp-better/git/ref/tags/Nightly";
+#ifndef WP_UPDATE_REPOSITORY
+#define WP_UPDATE_REPOSITORY ""
+#endif
+
+constexpr const char* kReleasesUrl = "https://api.github.com/repos/" WP_UPDATE_REPOSITORY "/releases?per_page=100";
 #ifdef _WIN32
-constexpr const char* kAssetName = "wiipartyrecomp-launcher.exe";
+constexpr const char* kAssetName = "wiisportsrecomp-launcher.exe";
 #elif defined(__APPLE__)
 #if defined(__arm64__) || defined(__aarch64__)
-constexpr const char* kAssetName = "WiiPartyRecomp-macos-arm64.dmg";
+constexpr const char* kAssetName = "WiiSportsRecomp-macos-arm64.dmg";
 #else
-constexpr const char* kAssetName = "WiiPartyRecomp-macos-x86_64.dmg";
+constexpr const char* kAssetName = "WiiSportsRecomp-macos-x86_64.dmg";
 #endif
 #else
-constexpr const char* kAssetName = "wiipartyrecomp-launcher-x86_64.AppImage";
+constexpr const char* kAssetName = "wiisportsrecomp-launcher-x86_64.AppImage";
 #endif
 
 struct Json {
@@ -315,7 +318,7 @@ bool fetch(const std::string& url, const wchar_t* accept, Sink sink, std::string
         return false;
     }
     std::wstring object = std::wstring(path, parts.dwUrlPathLength) + std::wstring(extra, parts.dwExtraInfoLength);
-    Handle session{WinHttpOpen(L"wiipartyrecomp-launcher", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0)};
+    Handle session{WinHttpOpen(L"wiisportsrecomp-launcher", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0)};
     if (!session.value) {
         error = "network unavailable";
         return false;
@@ -431,69 +434,68 @@ void read_summary(const std::string& body, Release& release) {
 }
 
 bool latest_release(Release& release, Release& current, const std::string& current_version, std::string& error) {
+    if (std::strlen(WP_UPDATE_REPOSITORY) == 0) {
+        error = "automatic updates are not configured for this local build";
+        return false;
+    }
+
     std::string body;
-    if (!fetch_text(kReleasesUrl, body, error)) return false;
+    if (!fetch_text(kReleasesUrl, body, error)) {
+        return false;
+    }
+
     Json list;
     if (!Parser(body).parse(list) || list.kind != Json::Kind::Array) {
         error = "unexpected GitHub release response";
         return false;
     }
 
-    Release nightly;
-    Release best_stable;
-    bool has_nightly = false;
-    bool has_stable = false;
+    Release latest;
+    bool found = false;
     for (const Json& entry : list.items) {
-        if (entry["draft"].flag) continue;
+        if (entry["draft"].flag) {
+            continue;
+        }
         std::string tag = entry["tag_name"].text;
-        if (tag.empty()) continue;
+        if (tag.empty()) {
+            continue;
+        }
+
         Release candidate;
         bool has_asset = false;
         for (const Json& asset : entry["assets"].items) {
-            if (asset["name"].text != kAssetName) continue;
+            if (asset["name"].text != kAssetName) {
+                continue;
+            }
             std::string digest = asset["digest"].text;
-            if (digest.rfind("sha256:", 0) != 0 || asset["browser_download_url"].text.empty()) continue;
+            const std::string& url = asset["browser_download_url"].text;
+            if (digest.rfind("sha256:", 0) != 0 || url.empty()) {
+                continue;
+            }
             candidate.version = tag.rfind('v', 0) == 0 ? tag.substr(1) : tag;
-            candidate.url = asset["browser_download_url"].text;
+            candidate.build = tag;
+            candidate.url = url;
             candidate.sha256 = digest.substr(7);
             candidate.page = entry["html_url"].text;
             read_summary(entry["body"].text, candidate);
             has_asset = true;
             break;
         }
-        if (!has_asset) continue;
-        if (tag == "Nightly") {
-            nightly = std::move(candidate);
-            has_nightly = true;
-            break;
+        if (!has_asset) {
+            continue;
         }
-        if (!has_stable || newer_version(candidate.version, best_stable.version)) {
-            best_stable = std::move(candidate);
-            has_stable = true;
+        if (!found || newer_version(candidate.version, latest.version)) {
+            latest = std::move(candidate);
+            found = true;
         }
     }
 
-    if (has_nightly) {
-        std::string reference_body;
-        std::string reference_error;
-        if (!fetch_text(kNightlyRefUrl, reference_body, reference_error)) {
-            error = "could not identify the latest Nightly commit: " + reference_error;
-            return false;
-        }
-        Json reference;
-        if (!Parser(reference_body).parse(reference) || reference["object"]["sha"].text.empty()) {
-            error = "GitHub did not return the Nightly commit ID";
-            return false;
-        }
-        nightly.build = reference["object"]["sha"].text;
-        release = std::move(nightly);
-    } else if (has_stable) {
-        release = std::move(best_stable);
-    } else {
+    if (!found) {
         error = "no compatible launcher asset with a SHA-256 digest was found";
         return false;
     }
 
+    release = std::move(latest);
     current.version = current_version;
     current.build = WP_LAUNCHER_BUILD;
     if (release.version == current_version) {
@@ -503,9 +505,6 @@ bool latest_release(Release& release, Release& current, const std::string& curre
 }
 
 bool update_available(const Release& candidate, const std::string& current_version) {
-    if (candidate.version == "Nightly") {
-        return !candidate.build.empty() && candidate.build != WP_LAUNCHER_BUILD;
-    }
     return newer_version(candidate.version, current_version);
 }
 
@@ -514,7 +513,7 @@ std::filesystem::path update_download_path() {
     std::error_code error;
     std::filesystem::path temp = std::filesystem::temp_directory_path(error);
     if (error) temp = std::filesystem::current_path(error);
-    return temp / ("wiipartyrecomp-update-" + std::to_string(static_cast<long long>(getpid())) + ".dmg");
+    return temp / ("wiisportsrecomp-update-" + std::to_string(static_cast<long long>(getpid())) + ".dmg");
 #else
     std::filesystem::path target = launcher_path();
     target += ".download";
@@ -618,7 +617,7 @@ bool replace_launcher(const std::filesystem::path& downloaded, std::string& erro
         return false;
     }
 #ifdef _WIN32
-    fs::path script = fs::temp_directory_path() / ("wiipartyrecomp-update-" + std::to_string(GetCurrentProcessId()) + ".ps1");
+    fs::path script = fs::temp_directory_path() / ("wiisportsrecomp-update-" + std::to_string(GetCurrentProcessId()) + ".ps1");
     std::ofstream out(script, std::ios::binary | std::ios::trunc);
     if (!out) {
         error = "could not create the updater helper script";
@@ -671,9 +670,9 @@ if (Test-Path $Executable) { Start-Process -FilePath $Executable }
         error = "could not locate the running .app bundle; launch the app from Finder or Applications";
         return false;
     }
-    fs::path work = fs::temp_directory_path() / ("wiipartyrecomp-update-" + std::to_string(static_cast<long long>(getpid())));
+    fs::path work = fs::temp_directory_path() / ("wiisportsrecomp-update-" + std::to_string(static_cast<long long>(getpid())));
     fs::path mount = work / "mount";
-    fs::path staged = work / "Wii Party Recomp.new.app";
+    fs::path staged = work / "Wii Sports Recomp.new.app";
     std::error_code ec;
     fs::remove_all(work, ec);
     ec.clear();

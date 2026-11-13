@@ -34,7 +34,6 @@ const Option kBaseOptions[] = {
     {"video.dump_textures", "0"},
     {"video.custom_textures", "1"},
     {"input.gamepads", "1"},
-    {"input.auto_grip", "1"},
     {"input.joycon_pairs", "1"},
     {"input.real_wiimotes", "1"},
     {"input.real_wiimote_mouse", "1"},

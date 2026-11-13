@@ -365,6 +365,8 @@ void window_thread() {
 
 }
 
+void run_event_loop(const std::atomic<bool>&) {}
+
 void start() {
     log::write("video", "build %s", WP_BUILD);
     g_aspect = nand::widescreen() ? kWideAspect : kStandardAspect;

@@ -17,8 +17,8 @@ OUTPUT = GAME.module_code
 DOL_HEADER = GAME.dol_code / "functions.h"
 DOL_TARGETS = GAME.module_targets
 LINES_PER_FILE = 40000
-OSSAVECONTEXT = GAME.sdk["os_save_context"]
-SETJMP = GAME.sdk["setjmp"]
+OSSAVECONTEXT = GAME.sdk.get("os_save_context")
+SETJMP = GAME.sdk.get("setjmp")
 MFLR_R0 = 0x7C0802A6
 FNV_PRIME = 16777619
 FNV_OFFSET = 2166136261
@@ -204,7 +204,9 @@ def render_function(name, module, start, instrs, entries, relocations_by_site, d
     for targets in tables.values():
         labels.update(t for t in targets if start <= t < end)
     emitter = ModuleEmitter(
-        name, module.module_id, start, end, entries, tables, relocations_by_site, dol_entries, ("dol", OSSAVECONTEXT), ("dol", SETJMP)
+        name, module.module_id, start, end, entries, tables, relocations_by_site, dol_entries,
+        ("dol", OSSAVECONTEXT) if OSSAVECONTEXT is not None else None,
+        ("dol", SETJMP) if SETJMP is not None else None
     )
     body = []
     for instr in instrs:
@@ -341,12 +343,14 @@ def main():
     parser.add_argument("--all", action="store_true")
     args = parser.parse_args()
     names = [p.stem for p in sorted(MODULES.glob("*.rel"))] if args.all else args.modules
-    if not names:
+    if not names and not args.all:
         parser.error("name at least one module or pass --all")
     dol_entries = load_dol_entries()
     for name in names:
         generate(name, dol_entries)
     write_table()
+    if not names:
+        print(f"no REL modules found under {MODULES}; generated an empty module table")
     return 0
 
 

@@ -50,6 +50,7 @@ struct Texts {
     const char* step_finish;
     const char* step_extract;
     const char* step_sdl;
+    const char* step_ghidra;
     const char* step_unpack;
     const char* step_dol;
     const char* step_modules;

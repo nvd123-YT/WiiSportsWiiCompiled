@@ -1,0 +1,262 @@
+name: Build and publish Wii Sports Recomp
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}-${{ github.run_attempt }}
+  cancel-in-progress: false
+
+jobs:
+  macos:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure launcher
+        run: |
+          VERSION="0.2.${GITHUB_RUN_NUMBER}-build.${GITHUB_RUN_ATTEMPT}.${GITHUB_SHA:0:8}"
+          cmake -S launcher -B build/launcher -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DWP_LAUNCHER_VERSION="$VERSION" \
+            -DWP_LAUNCHER_BUILD="$GITHUB_SHA" \
+            -DWP_UPDATE_REPOSITORY="$GITHUB_REPOSITORY"
+
+      - name: Build launcher app
+        run: cmake --build build/launcher --target launcher --parallel 2
+
+      - name: Verify and ad-hoc sign app bundle
+        run: |
+          APP="build/launcher/Wii Sports Recomp.app"
+          test -d "$APP"
+          test -x "$APP/Contents/MacOS/Wii Sports Recomp"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          plutil -lint "$APP/Contents/Info.plist"
+
+      - name: Package DMG
+        run: |
+          mkdir -p dist/dmg
+          ditto "build/launcher/Wii Sports Recomp.app" "dist/dmg/Wii Sports Recomp.app"
+          ln -s /Applications "dist/dmg/Applications"
+          hdiutil create \
+            -volname "Wii Sports Recomp" \
+            -srcfolder "dist/dmg" \
+            -ov -format UDZO \
+            "WiiSportsRecomp-macos-${{ matrix.arch }}.dmg"
+          shasum -a 256 "WiiSportsRecomp-macos-${{ matrix.arch }}.dmg" > "SHA256-${{ matrix.arch }}.txt"
+
+      - name: Upload macOS installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: wii-sports-macos-${{ matrix.arch }}
+          path: |
+            WiiSportsRecomp-macos-${{ matrix.arch }}.dmg
+            SHA256-${{ matrix.arch }}.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows x64
+    permissions:
+      contents: read
+    runs-on: windows-2025
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up MinGW-w64 and Ninja
+        uses: msys2/setup-msys2@v2.32.0
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-zlib
+
+      - name: Configure launcher
+        shell: msys2 {0}
+        run: |
+          VERSION="0.2.${GITHUB_RUN_NUMBER}-build.${GITHUB_RUN_ATTEMPT}.${GITHUB_SHA:0:8}"
+          cmake -S launcher -B build/launcher -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWP_LAUNCHER_VERSION="$VERSION" \
+            -DWP_LAUNCHER_BUILD="$GITHUB_SHA" \
+            -DWP_UPDATE_REPOSITORY="$GITHUB_REPOSITORY"
+
+      - name: Build launcher
+        shell: msys2 {0}
+        run: cmake --build build/launcher --target launcher --parallel 2
+
+      - name: Package Windows installer
+        shell: pwsh
+        run: |
+          $exe = "build/launcher/wiisportsrecomp-launcher.exe"
+          if (!(Test-Path $exe)) { throw "Launcher executable was not produced: $exe" }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $exe "dist/wiisportsrecomp-launcher.exe"
+          Compress-Archive -Path "dist/wiisportsrecomp-launcher.exe" -DestinationPath "dist/wiisportsrecomp-windows-x86_64.zip" -Force
+          $lines = Get-ChildItem dist -File | Where-Object { $_.Name -notlike "SHA256-*" } | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          }
+          $lines | Set-Content "dist/SHA256-windows.txt" -Encoding ascii
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: wii-sports-windows-x86_64
+          path: |
+            dist/wiisportsrecomp-launcher.exe
+            dist/wiisportsrecomp-windows-x86_64.zip
+            dist/SHA256-windows.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  linux:
+    name: Linux x86_64 AppImage
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build python3 curl git \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev \
+            libxtst-dev libxkbcommon-dev libwayland-dev wayland-protocols libdecor-0-dev \
+            libegl-dev libgl-dev libpulse-dev libasound2-dev libudev-dev libdbus-1-dev zlib1g-dev
+
+      - name: Build and package AppImage
+        run: python3 tools/make_appimage.py --build build/launcher-linux
+
+      - name: Verify AppImage and checksum
+        run: |
+          APP="build/wiisportsrecomp-launcher-x86_64.AppImage"
+          test -s "$APP"
+          file "$APP"
+          sha256sum "$APP" > build/SHA256-linux.txt
+
+      - name: Upload Linux installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: wii-sports-linux-x86_64
+          path: |
+            build/wiisportsrecomp-launcher-x86_64.AppImage
+            build/SHA256-linux.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Create a new GitHub Release
+    needs:
+      - macos
+      - windows
+      - linux
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Generate a unique release tag
+        id: release
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          VERSION="0.2.${GITHUB_RUN_NUMBER}-build.${GITHUB_RUN_ATTEMPT}.${SHORT_SHA}"
+          TAG="v${VERSION}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=Wii Sports Recomp ${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Download all platform installers
+        uses: actions/download-artifact@v8
+        with:
+          pattern: wii-sports-*
+          merge-multiple: true
+          path: dist
+
+      - name: Verify release payload
+        run: |
+          test -s dist/WiiSportsRecomp-macos-arm64.dmg
+          test -s dist/WiiSportsRecomp-macos-x86_64.dmg
+          test -s dist/wiisportsrecomp-launcher.exe
+          test -s dist/wiisportsrecomp-windows-x86_64.zip
+          test -s dist/wiisportsrecomp-launcher-x86_64.AppImage
+          test -s dist/SHA256-arm64.txt
+          test -s dist/SHA256-x86_64.txt
+          test -s dist/SHA256-windows.txt
+          test -s dist/SHA256-linux.txt
+
+      - name: Create a brand-new release for this build
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: ${{ steps.release.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          draft: false
+          prerelease: true
+          make_latest: false
+          overwrite_files: false
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+          body: |
+            A new Wii Sports Recomp build for macOS, Windows and Linux.
+
+            **Installers**
+            - macOS Apple Silicon: WiiSportsRecomp-macos-arm64.dmg
+            - macOS Intel: WiiSportsRecomp-macos-x86_64.dmg
+            - Windows x64: wiisportsrecomp-launcher.exe or the ZIP
+            - Linux x86_64: wiisportsrecomp-launcher-x86_64.AppImage
+
+            SHA-256 checksum files are included for each platform.
+
+            The launcher builds the native game locally from your own legally obtained Wii Sports disc. No Nintendo disc image, extracted game files or generated game code are included. On first setup, Ghidra 12 with the GameCube Loader is required unless a valid local function export already exists.
+
+            macOS builds are ad-hoc signed and are not Developer ID signed or notarized. Gatekeeper may show a warning.
+          files: |
+            dist/WiiSportsRecomp-macos-arm64.dmg
+            dist/WiiSportsRecomp-macos-x86_64.dmg
+            dist/wiisportsrecomp-launcher.exe
+            dist/wiisportsrecomp-windows-x86_64.zip
+            dist/wiisportsrecomp-launcher-x86_64.AppImage
+            dist/SHA256-arm64.txt
+            dist/SHA256-x86_64.txt
+            dist/SHA256-windows.txt
+            dist/SHA256-linux.txt

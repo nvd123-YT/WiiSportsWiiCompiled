@@ -1,4 +1,8 @@
 #include "app.h"
+
+#ifndef WP_UPDATE_REPOSITORY
+#define WP_UPDATE_REPOSITORY ""
+#endif
 #include "titlebar.h"
 
 #include <algorithm>
@@ -337,7 +341,7 @@ void App::launcher_update_card(float width) {
     }
     const ui::Palette& p = ui::palette();
     const Texts& t = texts();
-    std::string title = format(t.launcher_update_title, release.version == "Nightly" ? "Nightly build" : "v" + release.version);
+    std::string title = format(t.launcher_update_title, "v" + release.version);
     bool failed = launcher_state_ == 2;
     std::string detail = failed ? format(t.launcher_update_failed, failure) : std::string(t.launcher_update_detail);
     Card card(width);
@@ -628,12 +632,12 @@ void App::sidebar(float height) {
     float inner = kSidebarWidth - 40.0f;
     ui::die(origin + ImVec2(px(24), px(28)), px(40));
     ImGui::SetCursorScreenPos(origin + ImVec2(px(76), px(30)));
-    ui::text("Wii Party", Font::Semibold, 16.0f, p.text);
+    ui::text("Wii Sports", Font::Semibold, 16.0f, p.text);
     ImGui::SetCursorScreenPos(origin + ImVec2(px(76), px(51)));
     ui::text("Recomp", Font::Regular, ui::size::kDetail, p.secondary);
     const Texts& t = texts();
     const char* names[] = {t.game, t.settings, t.saves, t.controls, t.page_textures, wp::ui::label("mii.title"), t.page_captures, t.page_system, t.licenses,
-                           "Party Setup", "Minigame Library"};
+                           "Players & Controllers"};
     float top = px(100);
     float step = px(36) + px(2);
     ImGuiID indicator = ImHashStr("nav-indicator");
@@ -660,7 +664,7 @@ void App::page(float width, float height) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(px(kPagePaddingX), px(kPagePaddingTop) + std::round((1.0f - shown) * px(10))));
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ui::palette().background);
     bool scrolls = page_ == Page::Settings || page_ == Page::Saves || page_ == Page::Controls || page_ == Page::Textures || page_ == Page::Miis || page_ == Page::Captures ||
-                   page_ == Page::System || page_ == Page::Party || page_ == Page::Minigames;
+                   page_ == Page::System || page_ == Page::Players;
     ImGui::BeginChild(static_cast<int>(page_) + 100, ImVec2(width, height), ImGuiChildFlags_AlwaysUseWindowPadding,
                       scrolls ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     float content = std::min(width - px(kPagePaddingX) * 2, px(kContentMaxWidth));
@@ -693,11 +697,8 @@ void App::page(float width, float height) {
     case Page::Licenses:
         licenses_page(content, available);
         break;
-    case Page::Party:
-        party_page(content);
-        break;
-    case Page::Minigames:
-        minigames_page(content);
+    case Page::Players:
+        players_page(content);
         break;
     case Page::Count:
         break;
@@ -748,7 +749,7 @@ void App::play_panel(float width, float height) {
     ui::die(ImGui::GetCursorScreenPos(), px(72));
     ImGui::Dummy(ImVec2(px(72), px(72)));
     ui::gap(28);
-    ui::text("Wii Party", Font::Semibold, ui::size::kDisplay, p.text);
+    ui::text("Wii Sports", Font::Semibold, ui::size::kDisplay, p.text);
     ui::gap(6);
     ui::text(t.status_ready, Font::Regular, ui::size::kLead, p.secondary);
     if (disc_line_.empty()) {
@@ -814,7 +815,7 @@ void App::install_panel(float width) {
     ui::die(start, px(56));
     ImGui::Dummy(ImVec2(px(56), px(56)));
     ui::gap(24);
-    ui::text("Wii Party", Font::Semibold, ui::size::kDisplay, p.text);
+    ui::text("Wii Sports", Font::Semibold, ui::size::kDisplay, p.text);
     ui::gap(6);
     ui::text(t.status_install, Font::Regular, ui::size::kLead, p.secondary, width);
     ui::gap(28);
@@ -1109,14 +1110,14 @@ void App::settings_page(float width) {
         std::filesystem::path icon = std::filesystem::absolute(project_.root / "games" / kGame / "res" / (std::string(kGame) + ".svg"), missing);
         if (ui::button(t.shortcut_launcher, Kind::Secondary, 110.0f)) {
             std::string error;
-            launcher_message_failed_ = !create_desktop_shortcut(launcher_path(), launcher_path().parent_path(), icon, "Wii Party Recomp", error);
+            launcher_message_failed_ = !create_desktop_shortcut(launcher_path(), launcher_path().parent_path(), icon, "Wii Sports Recomp", error);
             launcher_message_ = launcher_message_failed_ ? format(t.shortcut_failed, error) : std::string(t.shortcut_done);
         }
         ImGui::SetCursorScreenPos(ImVec2(at.x + px(120), at.y));
         if (ui::button(t.shortcut_game, Kind::Secondary, 110.0f, std::filesystem::exists(project_.executable(), missing))) {
             std::string error;
             launcher_message_failed_ = !create_desktop_shortcut(std::filesystem::absolute(project_.executable(), missing),
-                                                                std::filesystem::absolute(project_.root, missing), icon, "Wii Party", error);
+                                                                std::filesystem::absolute(project_.root, missing), icon, "Wii Sports", error);
             launcher_message_ = launcher_message_failed_ ? format(t.shortcut_failed, error) : std::string(t.shortcut_done);
         }
     });
@@ -1213,7 +1214,7 @@ void App::create_save_backup() {
     const fs::path relative = wp::saves::save_relative(title_low);
     std::error_code error;
     if (!fs::is_directory(project_.nand_folder() / relative, error)) {
-        saves_message_ = "No Wii Party save data was found yet. Launch the game and save once, then try again.";
+        saves_message_ = "No Wii Sports save data was found yet. Launch the game and save once, then try again.";
         return;
     }
     int keep = std::max(1, std::atoi(value("saves.backups").c_str()));
@@ -1221,7 +1222,7 @@ void App::create_save_backup() {
     switch (outcome.result) {
     case wp::saves::Result::Created: saves_message_ = "Save backup created: " + outcome.backup.filename().string(); break;
     case wp::saves::Result::Unchanged: saves_message_ = "No new backup needed; save data matches the newest backup."; break;
-    case wp::saves::Result::NoSave: saves_message_ = "No Wii Party save data was found yet."; break;
+    case wp::saves::Result::NoSave: saves_message_ = "No Wii Sports save data was found yet."; break;
     case wp::saves::Result::Invalid: saves_message_ = "Save data failed validation; it was not backed up. " + outcome.message; break;
     default: saves_message_ = "Could not back up save data: " + outcome.message; break;
     }
@@ -1780,7 +1781,7 @@ void App::create_report() {
     std::filesystem::path path = folder / (std::string("report-") + stamp + ".txt");
     std::ofstream out(path, std::ios::binary);
     std::string id = project_.disc_id();
-    out << "Wii Party Recomp report\n\n";
+    out << "Wii Sports Recomp report\n\n";
     out << "Launcher: " << WP_LAUNCHER_VERSION << " (build " << WP_LAUNCHER_BUILD << "), files " << payload_revision() << "\n";
     out << "Platform: " << SDL_GetPlatform() << ", " << SDL_GetNumLogicalCPUCores() << " logical cores, " << SDL_GetSystemRAM() << " MB RAM\n";
     out << "Disc: " << (id.empty() ? "(not extracted)" : id + " " + region_name(id)) << "\n";
@@ -1810,7 +1811,11 @@ void App::create_report() {
     launcher_message_failed_ = !out;
     launcher_message_ = format(t.report_done, utf8_of(path.filename()));
     SDL_OpenURL(folder_url(folder).c_str());
-    SDL_OpenURL("https://github.com/arelkair/wiiparty-recomp/issues/new");
+    const std::string repository = WP_UPDATE_REPOSITORY;
+    const std::string support_url = repository.empty()
+        ? "https://github.com"
+        : "https://github.com/" + repository + "/issues/new";
+    SDL_OpenURL(support_url.c_str());
 }
 
 void App::textures_page(float width) {
@@ -2227,6 +2232,7 @@ void App::install(bool adding) {
         sdl_arguments.push_back("--offline");
     }
     program(t.step_sdl, python, sdl_arguments, 1.0f);
+    program(t.step_ghidra, python, {"tools/ghidra_import.py"}, 1.0f);
     program(t.step_unpack, python, {"recompiler/unpack_rels.py"}, 1.0f);
     program(t.step_dol, python, {"recompiler/recomp.py"}, 1.0f);
     program(t.step_modules, python, {"recompiler/recomp_rel.py", "--all"}, 3.0f);

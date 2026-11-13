@@ -23,6 +23,19 @@ fs::path mii_database(const fs::path& wii) {
     return wii / "shared2" / "menu" / "FaceLib" / "RFL_DB.dat";
 }
 
+bool has_save_data(const fs::path& folder) {
+    std::error_code error;
+    if (!fs::is_directory(folder, error)) {
+        return false;
+    }
+    for (fs::directory_iterator it(folder, error); !error && it != fs::directory_iterator(); it.increment(error)) {
+        if (it->is_regular_file(error) && !error) {
+            return true;
+        }
+    }
+    return false;
+}
+
 uint32_t title_low(const std::string& disc_id) {
     uint32_t value = 0;
     for (size_t i = 0; i < 4 && i < disc_id.size(); i++) {
@@ -124,8 +137,7 @@ void App::scan_dolphin() {
         if (wii.empty()) {
             continue;
         }
-        std::error_code error;
-        bool has_save = fs::exists(wii / save / "wiiparty.bin", error);
+        bool has_save = has_save_data(wii / save);
         int miis = count_miis(mii_database(wii));
         if (has_save || miis > 0) {
             dolphin_.wii = wii;

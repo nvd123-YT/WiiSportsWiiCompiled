@@ -9,7 +9,7 @@ import urllib.request
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
-output = root / "build" / "wiipartyrecomp-launcher-x86_64.AppImage"
+output = root / "build" / "wiisportsrecomp-launcher-x86_64.AppImage"
 TOOL_URL = "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage"
 TOOL_SHA256 = "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
 RUNTIME_URL = "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64"
@@ -17,10 +17,10 @@ RUNTIME_SHA256 = "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec26
 
 DESKTOP = """[Desktop Entry]
 Type=Application
-Name=Wii Party Recomp
-Comment=Build and play Wii Party from your own disc
-Exec=wiipartyrecomp-launcher
-Icon=wiipartyrecomp
+Name=Wii Sports Recomp
+Comment=Install and build Wii Sports from your own disc
+Exec=wiisportsrecomp-launcher
+Icon=wiisportsrecomp
 Terminal=false
 Categories=Game;
 """
@@ -48,19 +48,31 @@ def main():
         print("run this on Linux", file=sys.stderr)
         return 1
     build_id = os.environ.get("GITHUB_SHA", "development")
-    subprocess.run(["cmake", "-S", str(root / "launcher"), "-B", str(arguments.build), "-G", "Ninja",
-                    "-DCMAKE_BUILD_TYPE=Release", "-UWP_LAUNCHER_VERSION", f"-DWP_LAUNCHER_BUILD={build_id}"], check=True)
+    run_number = os.environ.get("GITHUB_RUN_NUMBER")
+    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+    if run_number:
+        version = f"0.2.{run_number}-build.{run_attempt}.{build_id[:8]}"
+    else:
+        version = os.environ.get("WP_LAUNCHER_VERSION", "0.1.18-alpha")
+    update_repository = os.environ.get("GITHUB_REPOSITORY", "")
+    subprocess.run([
+        "cmake", "-S", str(root / "launcher"), "-B", str(arguments.build), "-G", "Ninja",
+        "-DCMAKE_BUILD_TYPE=Release",
+        f"-DWP_LAUNCHER_VERSION={version}",
+        f"-DWP_LAUNCHER_BUILD={build_id}",
+        f"-DWP_UPDATE_REPOSITORY={update_repository}",
+    ], check=True)
     subprocess.run(["cmake", "--build", str(arguments.build)], check=True)
-    downloads = Path(tempfile.gettempdir()) / "wiipartyrecomp-appimage"
+    downloads = Path(tempfile.gettempdir()) / "wiisportsrecomp-appimage"
     tool = fetch(TOOL_URL, TOOL_SHA256, downloads)
     runtime = fetch(RUNTIME_URL, RUNTIME_SHA256, downloads)
     with tempfile.TemporaryDirectory() as work:
         app = Path(work) / "AppDir"
         (app / "usr" / "bin").mkdir(parents=True)
-        shutil.copy2(arguments.build / "wiipartyrecomp-launcher", app / "usr" / "bin" / "wiipartyrecomp-launcher")
-        os.symlink("usr/bin/wiipartyrecomp-launcher", app / "AppRun")
-        (app / "wiipartyrecomp-launcher.desktop").write_text(DESKTOP, encoding="utf-8")
-        shutil.copy2(root / "games" / "wiiparty" / "res" / "wiiparty.svg", app / "wiipartyrecomp.svg")
+        shutil.copy2(arguments.build / "wiisportsrecomp-launcher", app / "usr" / "bin" / "wiisportsrecomp-launcher")
+        os.symlink("usr/bin/wiisportsrecomp-launcher", app / "AppRun")
+        (app / "wiisportsrecomp-launcher.desktop").write_text(DESKTOP, encoding="utf-8")
+        shutil.copy2(root / "games" / "wiisports" / "res" / "wiisports.svg", app / "wiisportsrecomp.svg")
         output.unlink(missing_ok=True)
         environment = dict(os.environ, ARCH="x86_64", APPIMAGE_EXTRACT_AND_RUN="1")
         subprocess.run([str(tool), "--no-appstream", "--runtime-file", str(runtime), str(app), str(output)], check=True, env=environment)

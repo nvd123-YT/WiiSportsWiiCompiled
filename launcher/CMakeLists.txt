@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(wii_recomp_launcher C CXX)
+project(wii_sports_recomp_launcher C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,7 +7,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-Os -DNDEBUG")
 set(WP_LAUNCHER_VERSION "0.1.18-alpha" CACHE STRING "Version shown in the launcher")
-set(WP_LAUNCHER_BUILD "2610-025" CACHE STRING "Build number shown in the launcher")
+set(WP_LAUNCHER_BUILD "development" CACHE STRING "Build identifier shown in the launcher")
+if(NOT DEFINED WP_UPDATE_REPOSITORY)
+    set(WP_UPDATE_REPOSITORY "$ENV{GITHUB_REPOSITORY}" CACHE STRING "GitHub owner/repository used by the in-app updater")
+endif()
 
 include(FetchContent)
 
@@ -82,18 +85,17 @@ add_executable(launcher WIN32
 include(cmake/embed.cmake)
 
 if(APPLE)
-    set_target_properties(launcher PROPERTIES OUTPUT_NAME "Wii Party Recomp")
+    set_target_properties(launcher PROPERTIES OUTPUT_NAME "Wii Sports Recomp")
 else()
-    set_target_properties(launcher PROPERTIES OUTPUT_NAME wiipartyrecomp-launcher)
+    set_target_properties(launcher PROPERTIES OUTPUT_NAME wiisportsrecomp-launcher)
 endif()
 target_include_directories(launcher PRIVATE ${WP_ENGINE}/include src)
 target_include_directories(launcher SYSTEM PRIVATE ${WP_ENGINE}/../third_party/stb)
-target_compile_definitions(launcher PRIVATE WP_LAUNCHER_VERSION="${WP_LAUNCHER_VERSION}" WP_LAUNCHER_BUILD="${WP_LAUNCHER_BUILD}")
+target_compile_definitions(launcher PRIVATE WP_LAUNCHER_VERSION="${WP_LAUNCHER_VERSION}" WP_LAUNCHER_BUILD="${WP_LAUNCHER_BUILD}" WP_UPDATE_REPOSITORY="${WP_UPDATE_REPOSITORY}")
 target_compile_options(launcher PRIVATE -Wall -Wextra)
 target_link_libraries(launcher PRIVATE imgui ZLIB::ZLIB)
 
 if(WIN32)
-    target_sources(launcher PRIVATE res/launcher.rc)
     target_link_libraries(launcher PRIVATE dwmapi winhttp ole32 uuid shell32 bthprops dxgi)
     target_link_options(launcher PRIVATE -static $<$<CONFIG:Release>:-s>)
 elseif(APPLE)
@@ -104,8 +106,8 @@ elseif(APPLE)
     # -static-libstdc++/-static-libgcc flags.
     set_target_properties(launcher PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.nvdemu.wiipartyrecomp"
-        MACOSX_BUNDLE_BUNDLE_NAME "Wii Party Recomp"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.nvdemu.wiisportsrecomp"
+        MACOSX_BUNDLE_BUNDLE_NAME "Wii Sports Recomp"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${WP_LAUNCHER_VERSION}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${WP_MACOS_BUNDLE_VERSION}")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")

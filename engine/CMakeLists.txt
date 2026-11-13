@@ -31,6 +31,7 @@ add_library(wp_engine STATIC
     src/input/si.cpp
     src/core/exi.cpp
     src/core/hollywood.cpp
+    src/core/pi.cpp
     src/core/io.cpp
     src/platform/png.cpp
     src/platform/save_backup.cpp

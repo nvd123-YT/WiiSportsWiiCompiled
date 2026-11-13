@@ -65,20 +65,20 @@ int main(int argc, char** argv) {
             screenshot_prefix = argv[++i];
         }
     }
-    SDL_SetAppMetadata("Wii Party Recomp", WP_LAUNCHER_VERSION, "io.github.nvdemu.wiipartyrecomp");
+    SDL_SetAppMetadata("Wii Sports Recomp", WP_LAUNCHER_VERSION, "io.github.nvdemu.wiisportsrecomp");
     SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON, "1");
     SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON_SMALL, "1");
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Wii Party Recomp", SDL_GetError(), nullptr);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Wii Sports Recomp", SDL_GetError(), nullptr);
         return 1;
     }
     // SDL window dimensions are logical units; the high-density renderer handles
     // Retina/HiDPI pixels. Do not multiply the default window size by display scale.
-    SDL_Window* window = SDL_CreateWindow("Wii Party Recomp", 1040, 712,
+    SDL_Window* window = SDL_CreateWindow("Wii Sports Recomp", 1040, 712,
                                           SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     SDL_Renderer* renderer = window ? SDL_CreateRenderer(window, nullptr) : nullptr;
     if (!renderer) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Wii Party Recomp", SDL_GetError(), nullptr);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Wii Sports Recomp", SDL_GetError(), nullptr);
         return 1;
     }
     SDL_SetWindowMinimumSize(window, 820, 592);
