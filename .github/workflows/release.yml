@@ -229,6 +229,7 @@ jobs:
           overwrite_files: false
           generate_release_notes: true
           fail_on_unmatched_files: true
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
           body: |
             A new Wii Sports Recomp build for macOS, Windows and Linux.
 
