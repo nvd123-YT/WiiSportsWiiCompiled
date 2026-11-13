@@ -31,10 +31,20 @@ def resolve_ghidra(home):
 
 def main():
     parser = argparse.ArgumentParser()
-    default_home = os.environ.get(
-        "GHIDRA_HOME",
-        str(Path.home() / "Tools" / "ghidra_12.1.4_PUBLIC" if sys.platform == "darwin" else ROOT / "ghidra" / "install"),
-    )
+    common_homes = [
+        Path.home() / "Tools" / "ghidra_12.1.4_PUBLIC",
+        Path.home() / "ghidra_12.1.4_PUBLIC",
+        Path.home() / "Applications" / "ghidra_12.1.4_PUBLIC",
+        ROOT / "ghidra" / "install",
+        Path("C:/Tools/ghidra_12.1.4_PUBLIC"),
+        Path("C:/Program Files/Ghidra/ghidra_12.1.4_PUBLIC"),
+    ]
+    configured_home = os.environ.get("GHIDRA_HOME")
+    default_home = configured_home or str(next(
+        (home for home in common_homes if (home / "support" / "analyzeHeadless").is_file()
+         or (home / "support" / "analyzeHeadless.bat").is_file()),
+        common_homes[0] if sys.platform == "darwin" else ROOT / "ghidra" / "install",
+    ))
     parser.add_argument("--ghidra-home", default=default_home)
     parser.add_argument("--projects", default=str(ROOT / "ghidra" / "projects"))
     parser.add_argument("--force", action="store_true", help="Re-run Ghidra even when a valid function export already exists")
