@@ -93,7 +93,6 @@ target_compile_options(launcher PRIVATE -Wall -Wextra)
 target_link_libraries(launcher PRIVATE imgui ZLIB::ZLIB)
 
 if(WIN32)
-    target_sources(launcher PRIVATE res/launcher.rc)
     target_link_libraries(launcher PRIVATE dwmapi winhttp ole32 uuid shell32 bthprops dxgi)
     target_link_options(launcher PRIVATE -static $<$<CONFIG:Release>:-s>)
 elseif(APPLE)
