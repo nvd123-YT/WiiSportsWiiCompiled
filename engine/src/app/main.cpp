@@ -21,6 +21,7 @@
 #include "wp/log.h"
 #include "wp/nand.h"
 #include "wp/ipc.h"
+#include "wp/pi.h"
 #include "wp/settings.h"
 #include "wp/threads.h"
 #include "wp/video.h"
@@ -95,6 +96,7 @@ int run(int argc, char** argv) {
         std::fputs("cannot allocate guest memory\n", stderr);
         return 1;
     }
+    wp::pi::reset();
     uint32_t entry = 0;
     if (!wp::load_dol(extracted + "/sys/main.dol", entry)) {
         std::fprintf(stderr, "cannot load %s/sys/main.dol\n", extracted.c_str());
