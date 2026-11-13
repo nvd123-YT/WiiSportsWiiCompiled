@@ -9,6 +9,7 @@
 #include "wp/ipc.h"
 #include "wp/log.h"
 #include "wp/memory.h"
+#include "wp/pi.h"
 #include "wp/si.h"
 
 namespace wp::mmio {
@@ -63,6 +64,9 @@ void write_memory(uint32_t address, T value, Swap swap) {
 }
 
 uint16_t read16(uint32_t address) {
+    if (pi::owns(address)) {
+        return pi::read16(address);
+    }
     if (dsp_register(address)) {
         return dsp::read16(address);
     }
@@ -70,6 +74,9 @@ uint16_t read16(uint32_t address) {
 }
 
 uint32_t read32(uint32_t address) {
+    if (pi::owns(address)) {
+        return pi::read32(address);
+    }
     if (dsp_register(address)) {
         return (static_cast<uint32_t>(dsp::read16(address)) << 16) | dsp::read16(address + 2);
     }
@@ -89,6 +96,10 @@ uint32_t read32(uint32_t address) {
 }
 
 void write8(uint32_t address, uint8_t value) {
+    if (pi::owns(address)) {
+        pi::write8(address, value);
+        return;
+    }
     if (address == kFifoAddress) {
         gx::push(value, 1);
         return;
@@ -98,6 +109,10 @@ void write8(uint32_t address, uint8_t value) {
 }
 
 void write16(uint32_t address, uint16_t value) {
+    if (pi::owns(address)) {
+        pi::write16(address, value);
+        return;
+    }
     if (address == kFifoAddress) {
         gx::push(value, 2);
         return;
@@ -114,6 +129,10 @@ void write16(uint32_t address, uint16_t value) {
 }
 
 void write32(uint32_t address, uint32_t value) {
+    if (pi::owns(address)) {
+        pi::write32(address, value);
+        return;
+    }
     if (address == kFifoAddress) {
         gx::push(value, 4);
         return;
