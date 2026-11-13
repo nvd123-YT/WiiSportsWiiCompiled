@@ -37,7 +37,20 @@ def main():
     )
     parser.add_argument("--ghidra-home", default=default_home)
     parser.add_argument("--projects", default=str(ROOT / "ghidra" / "projects"))
+    parser.add_argument("--force", action="store_true", help="Re-run Ghidra even when a valid function export already exists")
     args = parser.parse_args()
+
+    function_export = GAME.analysis / "dol_functions.csv"
+    if not args.force and function_export.is_file():
+        try:
+            import csv
+            with function_export.open(newline="", encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+            if rows and all("address" in row and "size" in row for row in rows):
+                print(f"Reusing {len(rows)} existing Ghidra function records from {function_export}")
+                return 0
+        except (OSError, csv.Error) as error:
+            print(f"Existing function export is unreadable ({error}); running Ghidra again.")
 
     dol = GAME.dol
     if not dol.is_file():
