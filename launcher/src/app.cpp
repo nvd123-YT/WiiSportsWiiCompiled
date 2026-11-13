@@ -935,21 +935,31 @@ void App::progress_panel(float width, float height) {
         ui::gap(12);
         ImGui::BeginChild("log", ImVec2(width, std::max(px(80), room - steps_height - px(12))), ImGuiChildFlags_AlwaysUseWindowPadding,
                           ImGuiWindowFlags_HorizontalScrollbar);
-        bool at_bottom = ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - px(4);
+        std::string log_text;
+        for (const std::string& line : log_) {
+            log_text += line;
+            log_text.push_back('\n');
+        }
+        if (ui::button("Copy log", Kind::Secondary, 92.0f)) {
+            ImGui::SetClipboardText(log_text.c_str());
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("Select text and press Cmd+C / Ctrl+C to copy a section");
+        ui::gap(6);
+        if (log_text.empty()) {
+            log_text = "No log output yet.";
+        }
+        // InputTextMultiline is read-only but supports normal text selection and
+        // keyboard copying, unlike the previous TextUnformatted + ListClipper.
+        log_text.push_back('\0');
         ui::push_font(Font::Regular, ui::size::kDetail);
         ImGui::PushStyleColor(ImGuiCol_Text, p.secondary);
-        ImGuiListClipper clipper;
-        clipper.Begin(static_cast<int>(log_.size()));
-        while (clipper.Step()) {
-            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-                ImGui::TextUnformatted(log_[static_cast<size_t>(i)].c_str());
-            }
-        }
+        ImVec2 log_area = ImGui::GetContentRegionAvail();
+        ImGui::InputTextMultiline("##install-log-text", log_text.data(), log_text.size(),
+                                  ImVec2(log_area.x, std::max(px(60), log_area.y)),
+                                  ImGuiInputTextFlags_ReadOnly);
         ImGui::PopStyleColor();
         ui::pop_font();
-        if (at_bottom) {
-            ImGui::SetScrollHereY(1.0f);
-        }
         ImGui::EndChild();
     }
     ImGui::PopStyleVar(2);

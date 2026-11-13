@@ -11,23 +11,49 @@ public class ApplySymbols extends GhidraScript {
     @Override
     protected void run() throws Exception {
         int applied = 0;
+        int skipped = 0;
         for (String path : getScriptArgs()) {
-            if (!Files.exists(Paths.get(path))) {
+            if (!Files.isRegularFile(Paths.get(path))) {
+                println("symbol file not found; skipping: " + path);
                 continue;
             }
             List<String> lines = Files.readAllLines(Paths.get(path));
-            for (String line : lines.subList(1, lines.size())) {
-                String[] fields = line.split(",");
-                if (fields.length < 2) {
+            for (int index = 1; index < lines.size(); index++) {
+                String line = lines.get(index).trim();
+                if (line.isEmpty()) {
                     continue;
                 }
-                Address address = toAddr(Long.parseLong(fields[0].trim().substring(2), 16));
-                if (apply(address, fields[1].trim())) {
-                    applied++;
+                String[] fields = line.split(",", 2);
+                if (fields.length < 2) {
+                    skipped++;
+                    continue;
+                }
+                String rawAddress = fields[0].trim();
+                String name = fields[1].trim();
+                try {
+                    if (!rawAddress.matches("(?i)0x[0-9a-f]+") || name.isEmpty()) {
+                        skipped++;
+                        continue;
+                    }
+                    long value = Long.parseLong(rawAddress.substring(2), 16);
+                    if (value < 0 || value > 0xFFFFFFFFL) {
+                        skipped++;
+                        continue;
+                    }
+                    if (apply(toAddr(value), name)) {
+                        applied++;
+                    } else {
+                        skipped++;
+                    }
+                } catch (Exception error) {
+                    skipped++;
+                    if (skipped <= 10) {
+                        println("skipping malformed symbol row " + (index + 1) + ": " + error.getMessage());
+                    }
                 }
             }
         }
-        println("applied " + applied + " symbols");
+        println("applied " + applied + " symbols; skipped " + skipped + " invalid or conflicting rows");
     }
 
     private boolean apply(Address address, String name) {
