@@ -20,13 +20,11 @@ fail() {
 command -v python3 >/dev/null 2>&1 || fail "python3 is required"
 command -v cmake >/dev/null 2>&1 || fail "cmake is required"
 command -v ninja >/dev/null 2>&1 || fail "ninja is required"
-command -v nodtool >/dev/null 2>&1 || fail "nodtool is required for Wii disc extraction"
-[ -x "$GHIDRA_HOME/support/analyzeHeadless" ] || fail "Ghidra headless launcher not found at $GHIDRA_HOME/support/analyzeHeadless; set GHIDRA_HOME"
-[ -f "$DISC" ] || fail "put your legally obtained Wii Sports disc dump at $DISC or pass its path as the first argument"
-
 mkdir -p "$GAME_DIR/disc" "$GAME_DIR/analysis" "$GAME_DIR/nand" "$GAME_DIR/textures"
 
 if [ ! -f "$EXTRACTED/sys/main.dol" ]; then
+    command -v nodtool >/dev/null 2>&1 || fail "nodtool is required to extract the disc; alternatively, put an already-extracted Wii Sports filesystem under $EXTRACTED"
+    [ -f "$DISC" ] || fail "put your legally obtained Wii Sports disc dump at $DISC or pass its path as the first argument"
     mkdir -p "$EXTRACTED"
     nodtool extract "$DISC" "$EXTRACTED"
 fi
