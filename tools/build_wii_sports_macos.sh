@@ -54,6 +54,8 @@ python3 "$ROOT/recompiler/dsp/recomp_dsp.py"
 
 printf '\n== Configure and build native macOS target ==\n'
 cmake -S "$ROOT" -B "$BUILD_DIR" -G Ninja -DWP_GAME=wiisports -DCMAKE_BUILD_TYPE=Release
+cmake --build "$BUILD_DIR" --target pi_tests --parallel "$JOBS"
+ctest --test-dir "$BUILD_DIR" -R "^pi_tests$" --output-on-failure
 cmake --build "$BUILD_DIR" --target wiisports --parallel "$JOBS"
 
 printf '\n== Run Wii Sports ==\n'
