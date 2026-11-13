@@ -137,7 +137,6 @@ void App::scan_dolphin() {
         if (wii.empty()) {
             continue;
         }
-        std::error_code error;
         bool has_save = has_save_data(wii / save);
         int miis = count_miis(mii_database(wii));
         if (has_save || miis > 0) {
