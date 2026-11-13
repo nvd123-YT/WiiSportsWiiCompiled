@@ -61,6 +61,10 @@ bash tools/build_wii_sports_macos.sh
 
 The script extracts the disc locally, runs the Ghidra import/export, translates the DOL and REL modules, recompiles DSP code, configures the native target, and builds `build/out/wiisports`. It then starts the game runtime with the extracted directory.
 
+## Processor Interface MMIO
+
+The shared runtime now models the PI interrupt cause register at `0xCC003000` and interrupt mask register at `0xCC003004`, including cause write-one-to-clear behavior, mask readback and 16-bit read views. The tests cover these register accesses. The full relationship between each emulated device interrupt, PI cause bits and guest exception delivery still needs to be validated against Wii Sports; this register model does not claim that interrupt aggregation is complete.
+
 ## Compatibility and validation
 
 A successful compile is not proof of a playable game. Runtime bring-up must validate, in order:
