@@ -264,28 +264,35 @@ std::vector<ToolStatus> Toolchain::inspect() const {
 #endif
                 std::error_code error;
                 if (!std::filesystem::is_regular_file(headless, error)) continue;
-                bool found = status.program == "ghidra";
-                if (found) {
-                    status.version = "Ghidra 12.1.4";
-                } else {
-                    std::filesystem::path extensions = home / "Ghidra" / "Extensions";
-                    for (std::filesystem::recursive_directory_iterator it(extensions, error), end;
-                         !error && it != end; it.increment(error)) {
-                        if (!it->is_regular_file(error) || it->path().filename() != "extension.properties") continue;
-                        std::ifstream properties(it->path());
-                        std::string line;
-                        while (std::getline(properties, line)) {
-                            if (line.find("Nintendo GameCube Binary Loader for Ghidra") != std::string::npos) {
-                                found = true;
-                                status.version = "GameCube Loader 1.3.1";
-                                break;
-                            }
-                        }
-                        if (found) break;
+
+                std::ifstream application_properties(home / "Ghidra" / "application.properties");
+                std::string line;
+                bool correct_version = false;
+                while (std::getline(application_properties, line)) {
+                    if (line == "application.version=12.1.4") {
+                        correct_version = true;
+                        break;
                     }
                 }
-                if (found) {
+                if (!correct_version) continue;
+
+                std::filesystem::path extensions = home / "Ghidra" / "Extensions";
+                bool loader_found = false;
+                for (std::filesystem::recursive_directory_iterator it(extensions, error), end;
+                     !error && it != end; it.increment(error)) {
+                    if (!it->is_regular_file(error) || it->path().filename() != "extension.properties") continue;
+                    std::ifstream properties(it->path());
+                    while (std::getline(properties, line)) {
+                        if (line.find("Nintendo GameCube Binary Loader for Ghidra") != std::string::npos) {
+                            loader_found = true;
+                            break;
+                        }
+                    }
+                    if (loader_found) break;
+                }
+                if (loader_found) {
                     status.usable = true;
+                    status.version = status.program == "ghidra" ? "Ghidra 12.1.4" : "GameCube Loader 1.3.1";
                     status.bundled = (home.string().rfind(bundled_.string(), 0) == 0);
                     break;
                 }
