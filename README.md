@@ -81,7 +81,7 @@ The release workflow runs on pushes to `main`. Each successful run creates a **n
 
 The workflow builds and verifies all four platform packages before it attempts to publish the release. The publisher requests `contents: write`.
 
-**One-time GitHub setting for release publishing:** open **Settings → Actions → General → Workflow permissions** for this repository and select **Read and write permissions**. Save the setting. The first release attempt built all four packages successfully but GitHub denied release creation with `403 Resource not accessible by integration`, indicating that the workflow token was read-only. The new run created after changing the setting will use the updated permission. If an organization policy prevents changing this setting, add a fine-grained token with only this repository's **Contents: Read and write** permission as the repository Actions secret `RELEASE_TOKEN`; the workflow supports that as a fallback.
+The first release attempt built all four packages successfully but GitHub denied release creation with `403 Resource not accessible by integration`. The workflow now requests `contents: write` at workflow level while keeping the platform build jobs read-only. If a new main-branch run is still denied, open **Settings → Actions → General → Workflow permissions** and select **Read and write permissions**. Save the setting and start a fresh run (rerunning the old failed job retains its original token context). If an organization policy prevents changing the setting, add a fine-grained token limited to this repository with **Contents: Read and write** as the Actions secret `RELEASE_TOKEN`; the workflow supports that fallback.
 
 ## Build locally on macOS
 
