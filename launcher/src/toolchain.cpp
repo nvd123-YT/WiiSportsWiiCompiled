@@ -130,14 +130,6 @@ struct Requirement {
     int minor;
 };
 
-struct Requirement {
-    const char* program;
-    const char* argument;
-    const char* pattern;
-    int major;
-    int minor;
-};
-
 const Package* package_for(const std::string& program) {
     for (const Package& package : kPackages) {
         if (package.program && program == package.program) {
