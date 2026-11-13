@@ -1,0 +1,4 @@
+name = "Wii Sports"
+id = "AUTO"
+executable = "wiisports"
+disc = "disc/wiisports.rvz"
