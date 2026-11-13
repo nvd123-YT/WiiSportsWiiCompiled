@@ -1,4 +1,4 @@
-# Contributing to Wii Party Recomp
+# Contributing to Wii Sports Recomp
 
 Thank you for helping improve the project! This document outlines the guidelines and technical requirements for contributing to this static recompilation ecosystem.
 
@@ -6,8 +6,8 @@ Thank you for helping improve the project! This document outlines the guidelines
 
 ## Intellectual Property & Asset Protection
 - **No Copyrighted Material:** Never upload, commit, or link to any copyrighted Nintendo data. This includes `main.dol`, `.rel` files, ISO/WBFS/RVZ images, textures, models, audio, fonts, videos, or memory dumps. This rule strictly applies to commits, issues, and pull requests.
-- **Git Boundaries:** The directories `games/wiiparty/disc/`, `games/wiiparty/extracted/`, and `reference/` are explicitly ignored by Git. Never alter these exclusions.
-- **Legal Source:** You must use your own legally obtained copy of Wii Party to develop, test, or verify code.
+- **Git Boundaries:** The directories `games/wiisports/disc/`, `games/wiisports/extracted/`, and `reference/` are explicitly ignored by Git. Never alter these exclusions.
+- **Legal Source:** You must use your own legally obtained copy of Wii Sports to develop, test, or verify code.
 
 ---
 
@@ -26,13 +26,13 @@ All contributions are licensed under the **GNU General Public License, version 3
 
 ## Code Quality & Style Conventions
 
-- **Zero Code Comments:** Absolutely no comments are allowed inside source code files (`.c`, `.cpp`, `.h`, or scripts). All technical notes, architectural rationale, and documentation must live inside `docs/DECOMP_PROGRESS.md`.
+- **Zero Code Comments:** Absolutely no comments are allowed inside source code files (`.c`, `.cpp`, `.h`, or scripts). All technical notes, architectural rationale, and documentation must live inside `docs/WII_SPORTS_PORT.md`.
 - **Clean Workspace:** Never commit generated code (`build/`), execution logs, or temporary files.
 - **Isolation of Concerns:** Keep core recompiled game logic entirely separate from PC-specific enhancements (e.g., custom resolution or gamepad scaling inputs).
 
 ### Recompilation Fidelity
 - **No Arbitrary Stubs:** Do not replace original game or SDK logic with clean stubs for convenience.
-- **Allowed Substitutions:** Only hardware or console-specific dependencies (such as thread switching or cache operations) may be substituted. Every substitution must be explicitly justified and logged in `docs/DECOMP_PROGRESS.md`.
+- **Allowed Substitutions:** Only hardware or console-specific dependencies (such as thread switching or cache operations) may be substituted. Every substitution must be explicitly justified and logged in `docs/WII_SPORTS_PORT.md`.
 
 ---
 
@@ -55,7 +55,7 @@ ctest --test-dir build/out
 ```
 
 > [!IMPORTANT]
-> Passing compilation or core unit tests does not guarantee correctness. Any change affecting the runtime must be manually verified by running the game binary (`build/out/wiiparty`). If a runtime test was not performed, you must state this clearly in your pull request description.
+> Passing compilation or core unit tests does not guarantee correctness. Any change affecting the runtime must be manually verified by running the game binary (`build/out/wiisports`). If a runtime test was not performed, you must state this clearly in your pull request description.
 
 ---
 
@@ -67,7 +67,7 @@ ctest --test-dir build/out
 - **Example:** `Fix module function splitting.`
 
 ### Progress Tracking
-You must update `docs/DECOMP_PROGRESS.md` immediately following any change that alters runtime behavior. State exactly what was verified and the methodology used. Never declare a feature as fully working if it has not been verified under test conditions.
+You must update `docs/WII_SPORTS_PORT.md` immediately following any change that alters runtime behavior. State exactly what was verified and the methodology used. Never declare a feature as fully working if it has not been verified under test conditions.
 
 ---
 
