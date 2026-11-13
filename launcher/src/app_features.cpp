@@ -288,10 +288,10 @@ void App::profiles_section(float width) {
 
     ui::text("Player Profiles & Statistics", Font::Semibold, ui::size::kLead, p.text);
     ui::gap(6);
-    ui::text("Profiles keep preferred Miis, players assignments and local launcher statistics separate.", Font::Regular, ui::size::kDetail, p.secondary, width);
+    ui::text("Profiles keep preferred Miis, player assignments and local launcher statistics separate.", Font::Regular, ui::size::kDetail, p.secondary, width);
     ui::gap(10);
     Card card(width);
-    row(width, "Active profile", "Used for new players assignments and launch statistics.", 250.0f, 36.0f, [&] {
+    row(width, "Active profile", "Used for new player assignments and launch statistics.", 250.0f, 36.0f, [&] {
         int selected = active;
         if (ui::dropdown("active-profile", names, selected, 250.0f)) {
             set_pref("profiles.active", std::to_string(selected));
@@ -381,7 +381,7 @@ void App::profiles_section(float width) {
             int selected = 0;
             for (size_t i = 0; i < slots.size(); ++i) if (slots[i] == stored) selected = static_cast<int>(i);
             inset_separator(width);
-            row(width, "Preferred Mii", "A profile preference for players planning; it does not override a Mii already selected inside the game.", 250.0f, 36.0f, [&] {
+            row(width, "Preferred Mii", "A preferred Mii for this player profile; it does not override a Mii already selected inside the game.", 250.0f, 36.0f, [&] {
                 if (ui::dropdown("preferred-mii", choices, selected, 250.0f)) {
                     set_pref(mii_key.c_str(), selected == 0 ? "" : std::to_string(slots[static_cast<size_t>(selected)]));
                 }
@@ -410,7 +410,7 @@ void App::players_page(float width) {
     ui::text("Player lineup", Font::Semibold, ui::size::kLead, p.text);
     ui::gap(8);
     Card lineup(width);
-    row(width, "Players in this players", "Set the local player count for this setup preset.", 220.0f, 36.0f, [&] {
+    row(width, "Players in this setup", "Set the local player count for this setup preset.", 220.0f, 36.0f, [&] {
         int selected = players - 1;
         if (ui::dropdown("players-count", player_counts, selected, 220.0f)) {
             players = selected + 1;
@@ -496,7 +496,7 @@ void App::players_page(float width) {
     else selected_preset = 0;
     static char preset_name[64] = "Game night";
 
-    ui::text("Saved players presets", Font::Semibold, ui::size::kLead, p.text);
+    ui::text("Saved player presets", Font::Semibold, ui::size::kLead, p.text);
     ui::gap(8);
     Card presets(width);
     row(width, "Load a preset", preset_names.empty() ? "Save a lineup below to create your first preset." : "Loads player count, profile order and controller routing.", 280.0f, 36.0f, [&] {
