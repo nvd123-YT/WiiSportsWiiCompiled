@@ -94,6 +94,22 @@ std::string session_time(const std::string& stored) {
     return buffer;
 }
 
+std::string player_profile_key(int player_slot) {
+    return "players.profile." + std::to_string(player_slot);
+}
+
+std::string pad_key(const char* name, int ordinal) {
+    return wp::padmap::device_key(name ? name : "?", ordinal);
+}
+
+std::string calibration_value(float value) {
+    char buffer[32]{};
+    std::snprintf(buffer, sizeof(buffer), "%.2f", static_cast<double>(value));
+    return buffer;
+}
+
+} // namespace
+
 void App::graphics_presets(float width) {
     const ui::Palette& p = ui::palette();
     const std::string current = pref("graphics.preset").empty() ? "Manual / existing settings" : pref("graphics.preset");
