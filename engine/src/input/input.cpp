@@ -20,7 +20,6 @@
 #include "wp/gx.h"
 #include "wp/keymap.h"
 #include "wp/log.h"
-#include "wp/modules.h"
 #include "wp/settings.h"
 #include "wp/video.h"
 #include "wp/runtime.h"
@@ -41,27 +40,6 @@ int64_t now_ms() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-bool sideways_minigame() {
-    static const settings::LiveFlag automatic("input.auto_grip", "WP_AUTO_ORIENTATION");
-    if (!automatic()) {
-        return false;
-    }
-    static int64_t next = 0;
-    static bool cached = false;
-    int64_t now = now_ms();
-    if (now >= next) {
-        next = now + 100;
-        cached = false;
-        const game::Description& game = game::description();
-        for (size_t i = 0; i < game.sideways_module_count; i++) {
-            if (module_loaded(game.sideways_modules[i])) {
-                cached = true;
-                break;
-            }
-        }
-    }
-    return cached;
-}
 
 bool pressed(int key) {
     if (key == keymap::kWheelUp || key == keymap::kWheelDown) {
@@ -340,7 +318,7 @@ bool sideways_grip(bool read_toggle) {
         }
         toggle_held = toggle;
     }
-    return sideways_minigame() != flipped;
+    return flipped;
 }
 
 Sample gamepad_sample(uint32_t channel, bool sideways) {
