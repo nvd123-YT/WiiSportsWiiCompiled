@@ -227,9 +227,10 @@ void Toolchain::add_to_path() const {
         if (!options.empty()) {
             options += " ";
         }
-        options += "-Dapplication.settingsdir=\\\"";
+        options += "-Dapplication.settingsdir=";
+        options += static_cast<char>(34);
         options += settings.generic_u8string();
-        options += "\\\"";
+        options += static_cast<char>(34);
 #ifdef _WIN32
         _putenv_s("JDK_JAVA_OPTIONS", options.c_str());
 #else
