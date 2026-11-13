@@ -15,7 +15,7 @@ permissions:
 jobs:
   macos-runtime:
     name: macOS runtime and PI MMIO tests
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Check out source
         uses: actions/checkout@v4
