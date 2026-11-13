@@ -247,7 +247,7 @@ jobs:
 
             SHA-256 checksum files are included for each platform.
 
-            The launcher builds the native game locally from your own legally obtained Wii Sports disc. No Nintendo disc image, extracted game files or generated game code are included. On first setup, Ghidra 12 with the GameCube Loader is required unless a valid local function export already exists.
+            The launcher builds the native game locally from your own legally obtained Wii Sports disc. No Nintendo disc image, extracted game files or generated game code are included. On first setup, the launcher automatically downloads and verifies Eclipse Temurin JDK 21, Ghidra 12.1.4 and the GameCube Loader extension when they are not already available in its local tool cache. A valid local function export is reused when present.
 
             macOS builds are ad-hoc signed and are not Developer ID signed or notarized. Gatekeeper may show a warning.
           files: |
