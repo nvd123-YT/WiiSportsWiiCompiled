@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
+#include <cctype>
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
