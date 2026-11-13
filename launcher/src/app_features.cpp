@@ -67,7 +67,7 @@ void ensure_profiles() {
     // Do not rewrite launcher.ini every frame; persist only if clamping corrected
     // a stale or invalid active-profile index.
     if (stored_active != std::to_string(active)) set_pref("profiles.active", std::to_string(active));
-    if (pref("party.players").empty()) set_pref("party.players", "4");
+    if (pref("players.players").empty()) set_pref("players.players", "4");
 }
 
 std::string clean_name(const char* value) {
@@ -93,125 +93,6 @@ std::string session_time(const std::string& stored) {
     if (std::strftime(buffer, sizeof(buffer), "%b %d, %Y %H:%M", local) == 0) return "Previously launched";
     return buffer;
 }
-
-struct Minigame {
-    const char* name;
-    const char* category;
-    int players; // 0 means the game supports a range of player counts (About Face: 1–4).
-};
-
-const Minigame kMinigames[] = {
-    {"Gallop Along", "4 players", 4},
-    {"Tin Can Toss", "4 players", 4},
-    {"Zombie Panic", "4 players", 4},
-    {"Present Mountain", "4 players", 4},
-    {"Rolling Obstacles", "4 players", 4},
-    {"Flag Frenzy", "4 players", 4},
-    {"Slice and Dice", "4 players", 4},
-    {"Perfect Piece", "4 players", 4},
-    {"Say Cheese!", "4 players", 4},
-    {"Ski Jump", "4 players", 4},
-    {"Asteroid Belt", "4 players", 4},
-    {"Free Fall", "4 players", 4},
-    {"Country Road Race", "4 players", 4},
-    {"Perfect Swing", "4 players", 4},
-    {"Cosmic Clash", "4 players", 4},
-    {"Feather Frenzy", "4 players", 4},
-    {"Mii Hustle", "4 players", 4},
-    {"Mind Timer", "4 players", 4},
-    {"Volley Finish", "4 players", 4},
-    {"Dizzy Maze", "4 players", 4},
-    {"Mii Puzzle", "4 players", 4},
-    {"UFO Alert!", "4 players", 4},
-    {"Rescue Helicopter", "4 players", 4},
-    {"By a Hair", "4 players", 4},
-    {"Crash Balls", "4 players", 4},
-    {"Whack-a-Mole", "4 players", 4},
-    {"Track Star", "4 players", 4},
-    {"Fists Out!", "4 players", 4},
-    {"Galactic Race", "4 players", 4},
-    {"Puppy Photos", "4 players", 4},
-    {"Step by Step", "4 players", 4},
-    {"Jungle Jumps", "4 players", 4},
-    {"Crying Babies", "4 players", 4},
-    {"Like a Fish in Water", "4 players", 4},
-    {"Mii at Your Service", "4 players", 4},
-    {"Random Fireworks", "4 players", 4},
-    {"Rail Attack", "4 players", 4},
-    {"Pull-Up Pro", "4 players", 4},
-    {"Just the Right Distance", "4 players", 4},
-    {"Driving Rodeo", "4 players", 4},
-    {"Destiny Carriage", "4 players", 4},
-    {"Pool Tension", "1 vs 3", 4},
-    {"Little Grasshopper", "1 vs 3", 4},
-    {"Flying Fruit", "1 vs 3", 4},
-    {"Aerobics Class", "1 vs 3", 4},
-    {"Hide-and-Seek", "1 vs 3", 4},
-    {"All Aboard", "1 vs 1", 2},
-    {"Tune In", "1 vs 1", 2},
-    {"Flag Frenzy", "1 vs 1", 2},
-    {"Timber!", "1 vs 1", 2},
-    {"Boat to Boat", "1 vs 1", 2},
-    {"Tilt Maze", "1 vs 1", 2},
-    {"Pizza Delivery", "1 vs 1", 2},
-    {"Sharpshooters", "1 vs 1", 2},
-    {"Fruit Memory", "1 vs 1", 2},
-    {"Back to the Fold", "1 vs 1", 2},
-    {"Aerial Aces", "1 vs 1", 2},
-    {"Fruit Shower", "Pairs", 4},
-    {"Slam Dunk!", "Pairs", 4},
-    {"Pop the Balloons!", "Pairs", 4},
-    {"Robot Assembly", "Pairs", 4},
-    {"Wobbly Bridge", "Pairs", 4},
-    {"Flying Bike", "Pairs", 4},
-    {"Downriver", "Pairs", 4},
-    {"Wayward Sheep", "Pairs", 4},
-    {"Panic Doors", "Pairs", 4},
-    {"Haunted House", "Pairs", 4},
-    {"Synchronized Fishing", "Pairs", 4},
-    {"Mine Cart Escape", "Pairs", 4},
-    {"Target Earth", "Pairs", 4},
-    {"Speedy Sled", "Pairs", 4},
-    {"Five-Leaf Clover", "Pairs", 4},
-    {"Catch the Mouse", "Pairs", 4},
-    {"Jump Rope", "Pairs", 4},
-    {"Banana Warehouse", "Pairs", 4},
-    {"Tin Can Toss", "Pairs", 4},
-    {"Cursed Temple", "Pairs", 4},
-    {"The Rings", "Pairs", 4},
-    {"Team Maze", "Pairs", 4},
-
-    // Challenge menu entries are separate playable variants, even when the
-    // regular version of the same minigame is listed above.
-    {"Marching Orders", "Challenge", 1},
-    {"Garden Gridlock", "Challenge", 1},
-    {"Challenge variant: Shifty Gifts", "Challenge", 1},
-    {"Challenge variant: Tippy Traverse", "Challenge", 2},
-    {"Challenge variant: Banana Blockade", "Challenge", 2},
-    {"Challenge variant: Clover Hunt", "Challenge", 2},
-    {"About Face", "Challenge", 0},
-};
-
-std::string lower(std::string value) {
-    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-    return value;
-}
-
-std::string player_profile_key(int player_slot) {
-    return "party.profile." + std::to_string(player_slot);
-}
-
-std::string pad_key(const char* name, int ordinal) {
-    return wp::padmap::device_key(name ? name : "?", ordinal);
-}
-
-std::string calibration_value(float value) {
-    char buffer[32]{};
-    std::snprintf(buffer, sizeof(buffer), "%.2f", static_cast<double>(value));
-    return buffer;
-}
-
-} // namespace
 
 void App::graphics_presets(float width) {
     const ui::Palette& p = ui::palette();
@@ -391,10 +272,10 @@ void App::profiles_section(float width) {
 
     ui::text("Player Profiles & Statistics", Font::Semibold, ui::size::kLead, p.text);
     ui::gap(6);
-    ui::text("Profiles keep preferred Miis, party assignments and local launcher statistics separate.", Font::Regular, ui::size::kDetail, p.secondary, width);
+    ui::text("Profiles keep preferred Miis, players assignments and local launcher statistics separate.", Font::Regular, ui::size::kDetail, p.secondary, width);
     ui::gap(10);
     Card card(width);
-    row(width, "Active profile", "Used for new party assignments and launch statistics.", 250.0f, 36.0f, [&] {
+    row(width, "Active profile", "Used for new players assignments and launch statistics.", 250.0f, 36.0f, [&] {
         int selected = active;
         if (ui::dropdown("active-profile", names, selected, 250.0f)) {
             set_pref("profiles.active", std::to_string(selected));
@@ -484,7 +365,7 @@ void App::profiles_section(float width) {
             int selected = 0;
             for (size_t i = 0; i < slots.size(); ++i) if (slots[i] == stored) selected = static_cast<int>(i);
             inset_separator(width);
-            row(width, "Preferred Mii", "A profile preference for party planning; it does not override a Mii already selected inside the game.", 250.0f, 36.0f, [&] {
+            row(width, "Preferred Mii", "A profile preference for players planning; it does not override a Mii already selected inside the game.", 250.0f, 36.0f, [&] {
                 if (ui::dropdown("preferred-mii", choices, selected, 250.0f)) {
                     set_pref(mii_key.c_str(), selected == 0 ? "" : std::to_string(slots[static_cast<size_t>(selected)]));
                 }
@@ -498,26 +379,26 @@ void App::profiles_section(float width) {
     ui::gap(18);
 }
 
-void App::party_page(float width) {
+void App::players_page(float width) {
     ensure_profiles();
     const ui::Palette& p = ui::palette();
-    heading("Party Setup Wizard", "Choose player profiles and assign real input devices before launching Wii Party.", width);
+    heading("Players & Controllers", "Choose player profiles and assign real input devices before launching Wii Sports.", width);
     profiles_section(width);
 
     int count = profile_count();
     std::vector<std::string> names;
     for (int i = 0; i < count; ++i) names.push_back(profile_name(i));
     const std::vector<std::string> player_counts = {"1 player", "2 players", "3 players", "4 players"};
-    int players = std::clamp(pref_int("party.players", 4), 1, 4);
+    int players = std::clamp(pref_int("players.players", 4), 1, 4);
 
     ui::text("Party lineup", Font::Semibold, ui::size::kLead, p.text);
     ui::gap(8);
     Card lineup(width);
-    row(width, "Players in this party", "Set the local player count for this setup preset.", 220.0f, 36.0f, [&] {
+    row(width, "Players in this players", "Set the local player count for this setup preset.", 220.0f, 36.0f, [&] {
         int selected = players - 1;
-        if (ui::dropdown("party-count", player_counts, selected, 220.0f)) {
+        if (ui::dropdown("players-count", player_counts, selected, 220.0f)) {
             players = selected + 1;
-            set_pref("party.players", std::to_string(players));
+            set_pref("players.players", std::to_string(players));
         }
     });
     for (int slot = 1; slot <= players; ++slot) {
@@ -572,7 +453,7 @@ void App::party_page(float width) {
         const bool enabled = !wp::padmap::listed(ignored, key);
         const int assigned = wp::padmap::assigned(assignments, key);
         ImGui::PushID(i + 100);
-        row(width, name ? name : "Unknown controller", enabled ? "Connected" : "Ignored by Wii Party Recomp", 250.0f, 34.0f, [&] {
+        row(width, name ? name : "Unknown controller", enabled ? "Connected" : "Ignored by Wii Sports Recomp", 250.0f, 34.0f, [&] {
             int selection = assigned;
             if (ui::dropdown("device-player", choices, selection, 160.0f) && enabled) {
                 store("input.gamepad_players", wp::padmap::assign(value("input.gamepad_players"), key, selection));
@@ -588,10 +469,10 @@ void App::party_page(float width) {
     devices.end();
 
     ui::gap(18);
-    int preset_count = std::clamp(pref_int("party.presets.count", 0), 0, 12);
+    int preset_count = std::clamp(pref_int("players.presets.count", 0), 0, 12);
     std::vector<std::string> preset_names;
     for (int i = 0; i < preset_count; ++i) {
-        const std::string name = pref(indexed_key("party.preset.name.", i).c_str());
+        const std::string name = pref(indexed_key("players.preset.name.", i).c_str());
         preset_names.push_back(name.empty() ? "Party " + std::to_string(i + 1) : name);
     }
     static int selected_preset = 0;
@@ -599,25 +480,25 @@ void App::party_page(float width) {
     else selected_preset = 0;
     static char preset_name[64] = "Game night";
 
-    ui::text("Saved party presets", Font::Semibold, ui::size::kLead, p.text);
+    ui::text("Saved players presets", Font::Semibold, ui::size::kLead, p.text);
     ui::gap(8);
     Card presets(width);
     row(width, "Load a preset", preset_names.empty() ? "Save a lineup below to create your first preset." : "Loads player count, profile order and controller routing.", 280.0f, 36.0f, [&] {
         if (!preset_names.empty()) {
             ImGui::SetNextItemWidth(px(170));
-            ui::dropdown("saved-party", preset_names, selected_preset, 170.0f);
+            ui::dropdown("saved-players", preset_names, selected_preset, 170.0f);
             ImGui::SameLine(0.0f, px(8));
             if (ui::button("Load", Kind::Secondary, 84.0f)) {
                 const int i = selected_preset;
-                set_pref("party.players", pref(indexed_key("party.preset.players.", i).c_str()));
+                set_pref("players.players", pref(indexed_key("players.preset.players.", i).c_str()));
                 for (int slot = 1; slot <= 4; ++slot) {
                     const std::string dst = player_profile_key(slot);
-                    const std::string src = "party.preset.profile." + std::to_string(i) + "." + std::to_string(slot);
+                    const std::string src = "players.preset.profile." + std::to_string(i) + "." + std::to_string(slot);
                     set_pref(dst.c_str(), pref(src.c_str()));
                 }
-                const std::string pads = pref(indexed_key("party.preset.gamepad_players.", i).c_str());
-                const std::string ignored_pads = pref(indexed_key("party.preset.ignored_gamepads.", i).c_str());
-                const std::string keyboard = pref(indexed_key("party.preset.keyboard_p1.", i).c_str());
+                const std::string pads = pref(indexed_key("players.preset.gamepad_players.", i).c_str());
+                const std::string ignored_pads = pref(indexed_key("players.preset.ignored_gamepads.", i).c_str());
+                const std::string keyboard = pref(indexed_key("players.preset.keyboard_p1.", i).c_str());
                 store("input.gamepad_players", pads);
                 store("input.ignored_gamepads", ignored_pads);
                 store("input.player1_keyboard_only", keyboard);
@@ -629,23 +510,23 @@ void App::party_page(float width) {
     inset_separator(width);
     row(width, "Save current setup", "Keep this lineup and the currently connected controller routing.", 350.0f, 34.0f, [&] {
         ImGui::SetNextItemWidth(px(220));
-        ImGui::InputText("##party-preset-name", preset_name, sizeof(preset_name));
+        ImGui::InputText("##players-preset-name", preset_name, sizeof(preset_name));
         ImGui::SameLine(0.0f, px(8));
         if (ui::button("Save preset", Kind::Primary, 112.0f, preset_count < 12)) {
             std::string name = clean_name(preset_name);
             if (!name.empty() && preset_count < 12) {
                 const int i = preset_count;
-                set_pref(indexed_key("party.preset.name.", i).c_str(), name);
-                set_pref(indexed_key("party.preset.players.", i).c_str(), std::to_string(players));
+                set_pref(indexed_key("players.preset.name.", i).c_str(), name);
+                set_pref(indexed_key("players.preset.players.", i).c_str(), std::to_string(players));
                 for (int slot = 1; slot <= 4; ++slot) {
-                    const std::string key = "party.preset.profile." + std::to_string(i) + "." + std::to_string(slot);
+                    const std::string key = "players.preset.profile." + std::to_string(i) + "." + std::to_string(slot);
                     const std::string value = pref(player_profile_key(slot).c_str());
                     set_pref(key.c_str(), value);
                 }
-                set_pref(indexed_key("party.preset.gamepad_players.", i).c_str(), value("input.gamepad_players"));
-                set_pref(indexed_key("party.preset.ignored_gamepads.", i).c_str(), value("input.ignored_gamepads"));
-                set_pref(indexed_key("party.preset.keyboard_p1.", i).c_str(), value("input.player1_keyboard_only"));
-                set_pref("party.presets.count", std::to_string(i + 1));
+                set_pref(indexed_key("players.preset.gamepad_players.", i).c_str(), value("input.gamepad_players"));
+                set_pref(indexed_key("players.preset.ignored_gamepads.", i).c_str(), value("input.ignored_gamepads"));
+                set_pref(indexed_key("players.preset.keyboard_p1.", i).c_str(), value("input.player1_keyboard_only"));
+                set_pref("players.presets.count", std::to_string(i + 1));
                 selected_preset = i;
                 std::snprintf(preset_name, sizeof(preset_name), "%s", "");
             }
@@ -657,74 +538,10 @@ void App::party_page(float width) {
     const std::string ready_summary = std::to_string(pad_count) + " SDL gamepad(s) currently detected. Pair real Wii Remotes separately and confirm player controls before starting.";
     row(width, "Ready check", ready_summary.c_str(), 0.0f, 0.0f, [] {});
     if (project_.built() && project_.extracted()) {
-        if (ui::button("Launch Wii Party", Kind::Primary, 180.0f)) play();
+        if (ui::button("Launch Wii Sports", Kind::Primary, 180.0f)) play();
     } else {
-        ui::text("Install or build Wii Party on the Home page before launching.", Font::Regular, ui::size::kDetail, p.secondary, width);
+        ui::text("Install or build Wii Sports on the Home page before launching.", Font::Regular, ui::size::kDetail, p.secondary, width);
     }
     ui::gap(8);
-    ui::text("The wizard saves profiles and input routing. Choose the actual board/minigame mode inside Wii Party; there is not yet a reliable in-game mode-launch hook.", Font::Regular, ui::size::kDetail, p.secondary, width);
-}
-
-void App::minigames_page(float width) {
-    const ui::Palette& p = ui::palette();
-    heading("Minigame Library", "Browse all 86 catalog entries: the 79 standard minigames plus all 7 Challenge entries and variants.", width);
-
-    static char search[128] = {};
-    static int category_filter = 0;
-    static bool favorites_only = false;
-    const std::vector<std::string> categories = {"All categories", "4 players", "1 vs 3", "1 vs 1", "Pairs", "Challenge"};
-    row(width, "Search", "Search by title or category.", 300.0f, 34.0f, [&] {
-        ImGui::SetNextItemWidth(px(300));
-        ImGui::InputText("##minigame-search", search, sizeof(search));
-    });
-    row(width, "Category", "", 220.0f, 36.0f, [&] {
-        ui::dropdown("minigame-category", categories, category_filter, 220.0f);
-    });
-    row(width, "Favorites only", "Show just titles you have marked as favorites.", 42.0f, 24.0f, [&] {
-        bool state = pref("minigame.favorites_only") == "1";
-        if (ui::toggle("minigame-favorites-only", state)) {
-            favorites_only = !state;
-            set_pref("minigame.favorites_only", favorites_only ? "1" : "0");
-        }
-    });
-    favorites_only = pref("minigame.favorites_only") == "1";
-    const std::string needle = lower(search);
-    int shown = 0;
-    int favorites = 0;
-    for (size_t i = 0; i < std::size(kMinigames); ++i) {
-        const std::string favorite_key = "minigame.favorite." + std::to_string(i);
-        if (pref(favorite_key.c_str()) == "1") ++favorites;
-    }
-
-    ui::gap(12);
-    const std::string count_label = std::to_string(std::size(kMinigames)) + " entries · " +
-        std::to_string(favorites) + " favorite(s)";
-    ui::text(count_label.c_str(), Font::Regular, ui::size::kDetail, p.secondary);
-    ui::gap(8);
-    Card list(width);
-    for (size_t i = 0; i < std::size(kMinigames); ++i) {
-        const Minigame& game = kMinigames[i];
-        const std::string title = game.name;
-        const std::string category = game.category;
-        const std::string favorite_key = "minigame.favorite." + std::to_string(i);
-        bool favorite = pref(favorite_key.c_str()) == "1";
-        if (category_filter != 0 && category != categories[static_cast<size_t>(category_filter)]) continue;
-        if (favorites_only && !favorite) continue;
-        if (!needle.empty() && lower(title + " " + category).find(needle) == std::string::npos) continue;
-        if (shown > 0) inset_separator(width);
-        const std::string player_count = game.players == 0 ? "1–4 players" : std::to_string(game.players) + (game.players == 1 ? " player" : " players");
-        std::string detail = category + " · " + player_count;
-        if (category != "Challenge") detail += " · listed in the Free Play checklist";
-        ImGui::PushID(static_cast<int>(i));
-        row(width, title.c_str(), detail.c_str(), 86.0f, 30.0f, [&] {
-            if (ImGui::Checkbox("Favorite", &favorite)) set_pref(favorite_key.c_str(), favorite ? "1" : "0");
-        });
-        ImGui::PopID();
-        ++shown;
-    }
-    if (shown == 0) row(width, "No matches", "Try a different title, category, or favorites filter.", 0.0f, 0.0f, [] {});
-    list.end();
-
-    ui::gap(10);
-    ui::text("This page is a catalog and favorites list only. Records, scores and direct-launch controls are not available here because the game does not expose reliable result or minigame-selection hooks yet.", Font::Regular, ui::size::kDetail, p.secondary, width);
+    ui::text("The wizard saves profiles and input routing. Choose Tennis, Baseball, Bowling, Golf or Boxing from inside Wii Sports; there is not yet a reliable in-game mode-launch hook.", Font::Regular, ui::size::kDetail, p.secondary, width);
 }
