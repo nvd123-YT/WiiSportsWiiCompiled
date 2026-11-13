@@ -1,11 +1,13 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <vector>
 
 namespace wp::video {
 
 void start();
+void run_event_loop(const std::atomic<bool>& finished);
 void present();
 void update_statistics(double fps);
 void save_next_frame(const char* path);
