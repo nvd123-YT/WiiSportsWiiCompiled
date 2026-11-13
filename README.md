@@ -1,64 +1,43 @@
 # Wii Sports Recomp
 
-A native macOS-first static recompilation target for **Wii Sports**, built on the reusable Wii hardware runtime in this repository.
+Native recompilation of **Wii Sports** for macOS, Windows and Linux.
 
-> **Status:** Experimental integration branch; not yet a playable release.
+> **Status:** Experimental — gameplay compatibility is still being validated.
 
-This branch is **not yet a playable release**. It adds a Wii Sports-specific target and macOS build pipeline. You must provide your own legally obtained Wii Sports disc dump. Game files, extracted data, generated code and Ghidra databases are not included.
+The launcher builds the game locally from a Wii Sports disc image supplied by the user. No Nintendo game files are distributed or downloaded.
 
-## Target sports
+## Download and install
 
-The port must preserve all five original sports: **Tennis, Baseball, Bowling, Golf and Boxing**. The input target includes keyboard, conventional gamepads and real Wii Remotes. Boxing also requires differentiated left/right punches, blocking/guarding and Nunchuk input. These are acceptance requirements, not completed compatibility claims.
+Open the project's GitHub Releases and download the newest release for your platform:
 
-## Architecture
+- **macOS:** Apple Silicon or Intel DMG — open it and move **Wii Sports Recomp.app** into Applications.
+- **Windows:** wiisportsrecomp-launcher.exe or the ZIP.
+- **Linux:** wiisportsrecomp-launcher-x86_64.AppImage.
 
-- **Translated game code:** the Wii Sports DOL and REL modules are lifted to native C++.
-- **CPU/runtime:** shared PowerPC state, guest memory, MMIO, OS threads, interrupts and context handling.
-- **Graphics:** shared GX command processor and SDL3/OpenGL renderer for macOS.
-- **Audio:** shared DSP/audio pipeline with SDL3 host output.
-- **System services:** shared IOS, disc, NAND, EXI and module-loading layers.
-- **Input:** shared keyboard/gamepad/Wii Remote input services, to be validated against Wii Sports and its Boxing/Nunchuk requirements.
+Launch the app, choose your legally obtained Wii Sports ISO/RVZ/WBFS image, select the install folder, and press **Install**. The launcher downloads and verifies required build tools from their official sources, extracts the disc, performs Ghidra analysis when a function export is not already present, translates the game and builds the native executable. Your disc image, extracted data, Ghidra project, generated C++ and saves stay on your computer.
 
-The game-specific files live under `games/wiisports/`. The shared hardware runtime lives under `engine/`. This target does not depend on Mario Kart Wii game-specific runtime code.
+For the first build, install Ghidra 12 with the GameCube Loader and the PowerPC:BE:32:Gekko_Broadway language. On macOS the default location is ~/Tools/ghidra_12.1.4_PUBLIC. On other platforms set GHIDRA_HOME to the Ghidra installation directory. A valid existing games/wiisports/analysis/dol_functions.csv export is reused automatically; use python tools/ghidra_import.py --force to rerun Ghidra.
 
-## macOS build
+## Runtime architecture
 
-Requirements:
+The shared runtime provides a PowerPC CPU/lifter, guest memory, OS threads and context switching, MMIO, IOS, disc and NAND services, REL module dispatch, GX graphics, DSP audio, keyboard/gamepad input and Wii Remote support. On macOS it uses SDL3 and OpenGL.
 
-- Apple Xcode Command Line Tools.
-- CMake, Ninja, Python 3 and Git.
-- `nodtool` on `PATH` for Wii disc extraction.
-- Ghidra 12 with the GameCube Loader and the `PowerPC:BE:32:Gekko_Broadway` language.
-- A legally obtained Wii Sports disc image.
-
-The default Ghidra path on the development Mac is `~/Tools/ghidra_12.1.4_PUBLIC`. Set `GHIDRA_HOME` to override it.
-
-Put your disc image at:
-
-```
-games/wiisports/disc/wiisports.rvz
-```
-
-Or pass another image path as the first argument to the build helper:
+The game target is configured under games/wiisports/; general runtime code lives under engine/. The default local workflow is:
 
 ```sh
-bash tools/build_wii_sports_macos.sh "/path/to/your/Wii Sports disc.rvz"
+bash tools/build_wii_sports_macos.sh
 ```
 
-The helper extracts the disc locally, imports the DOL into Ghidra, exports function address/size metadata, lifts the DOL and REL modules, recompiles DSP code, configures the macOS target and builds `build/out/wiisports`. It then attempts to launch the game.
+Place your disc image at games/wiisports/disc/wiisports.rvz, or pass its path as the first argument. A pre-extracted filesystem can instead be placed under games/wiisports/extracted/.
 
-Manual build details and the compatibility checklist are in [docs/WII_SPORTS_PORT.md](docs/WII_SPORTS_PORT.md).
+## Sports and input acceptance
 
-## Ghidra integration model
+The target is intended to preserve all five sports: **Tennis, Baseball, Bowling, Golf and Boxing**. Keyboard, conventional gamepads and real Wii Remotes must remain available. Boxing additionally requires real motion sensing, left/right punch differentiation, blocking/guarding and Nunchuk controls.
 
-Ghidra function discovery and symbols are retained as inputs to the build. The runtime requires native functions with the `void f_XXXXXXXX(wp::Cpu&)` calling convention, so the repository's PPC lifter generates runtime-compatible C++ from the original DOL/REL instructions. Ghidra decompiler pseudocode is not linked directly.
+These are acceptance requirements, not claims that all five sports are already playable. The new Wii Sports target, runtime integration and PI MMIO regression tests are an experimental foundation. Compatibility must be verified against the user's own disc.
 
-The generated function list is written to `games/wiisports/analysis/dol_functions.csv`. Verified symbol names belong in `games/wiisports/analysis/symbols.csv`; hardware/OS replacements must be individually justified in `hle_functions.csv`.
+## Local data and privacy
 
-## Status and limitations
+Do not commit or distribute disc images, extracted game files, generated game code, save data, textures, Ghidra databases, or memory dumps. The repository ignores the game-specific local folders. Only the launcher, runtime, recompilation tools and source code belong in releases.
 
-The shared engine already has general Wii runtime and GX/OpenGL, DSP, IOS, memory, disc, and input components. That does **not** prove Wii Sports compatibility. Wii Sports-specific MMIO, SDK calls, REL modules, graphics states, audio microcode, save paths and all five sports still need validation with the user's disc.
-
-Do not suppress an unknown MMIO write or unresolved guest function to make the game appear to continue. Implement the documented register or resolve the guest address to a translated DOL/REL function or a justified hardware service.
-
-No game data or proprietary assets are distributed by this repository.
+See the porting notes and third-party notices.
