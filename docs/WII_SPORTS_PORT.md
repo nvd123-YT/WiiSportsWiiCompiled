@@ -26,7 +26,7 @@ The Wii Sports-specific layer is `games/wiisports/`:
 - `analysis/hle_functions.csv`: explicitly approved hardware/OS replacements only.
 - `extracted/`, `disc/`, and generated code: local-only data excluded from Git.
 
-The macOS graphics path is the shared SDL3/OpenGL renderer. It does not use Mario Kart Wii game-specific runtime code.
+The macOS graphics path is the shared SDL3/OpenGL renderer. The SDL window and event loop are created and run on the process main thread, while the translated PowerPC CPU runs on a dedicated worker with a 512 MiB guest stack. This avoids creating the AppKit window on a detached background thread. It does not use Mario Kart Wii game-specific runtime code.
 
 ## Important distinction: Ghidra output and native code
 
@@ -73,7 +73,7 @@ A successful compile is not proof of a playable game. Runtime bring-up must vali
 2. OS context switching, threads, interrupts and retrace timing.
 3. Disc and filesystem reads, NAND/save behavior, and dynamically linked REL modules.
 4. GX FIFO/MMIO handling and rendered menus.
-5. DSP/audio output.
+5. DSP/audio output, initially through the interpreter until title-specific microcode is verified.
 6. Controller mapping and motion data.
 7. Each of Tennis, Baseball, Bowling, Golf and Boxing.
 
