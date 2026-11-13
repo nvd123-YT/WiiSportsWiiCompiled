@@ -14,7 +14,7 @@ set_source_files_properties("${WP_INSTRUCTION_CASES}" PROPERTIES COMPILE_OPTIONS
 target_link_libraries(translator_tests PRIVATE wp_engine)
 add_test(NAME translator_tests COMMAND translator_tests)
 
-add_executable(pi_tests engine/pi_tests.cpp)
+add_executable(pi_tests engine/pi_tests.cpp engine/test_game.cpp)
 target_link_libraries(pi_tests PRIVATE wp_engine)
 target_compile_options(pi_tests PRIVATE -Wall -Wextra)
 add_test(NAME pi_tests COMMAND pi_tests)
