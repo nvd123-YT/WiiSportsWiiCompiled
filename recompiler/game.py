@@ -3,7 +3,7 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_GAME = "wiiparty"
+DEFAULT_GAME = "wiisports"
 
 
 class Game:
@@ -12,11 +12,16 @@ class Game:
         self.folder = ROOT / "games" / key
         config = tomllib.loads((self.folder / "game.toml").read_text(encoding="utf-8"))
         self.name = config["name"]
-        self.id = config["id"]
         self.executable = config["executable"]
         self.sdk = config.get("sdk", {})
         self.disc = self.folder / config["disc"]
         self.extracted = self.folder / "extracted"
+        configured_id = config.get("id", "AUTO")
+        if configured_id == "AUTO":
+            boot = self.extracted / "sys" / "boot.bin"
+            self.id = boot.read_bytes()[:6].decode("ascii", errors="replace") if boot.is_file() else "AUTO"
+        else:
+            self.id = configured_id
         self.dol = self.extracted / "sys" / "main.dol"
         self.compressed_modules = self.extracted / "files" / "rel"
         self.analysis = self.folder / "analysis"
