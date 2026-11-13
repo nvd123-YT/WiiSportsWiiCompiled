@@ -2,6 +2,7 @@
 #include <windows.h>
 #endif
 
+#include <atomic>
 #include <chrono>
 #include <csignal>
 #include <cstdio>
@@ -137,10 +138,27 @@ int run(int argc, char** argv) {
     }
 
     wp::video::start();
+#ifdef _WIN32
     wp::Cpu cpu{};
     wp::init_threads(cpu);
     wp::call(cpu, entry);
     std::puts("entry returned");
+#else
+    std::atomic<bool> game_finished{false};
+    std::thread game_thread([&] {
+        wp::run_with_stack(size_t{512} << 20, [&] {
+            wp::Cpu cpu{};
+            wp::init_threads(cpu);
+            wp::call(cpu, entry);
+            std::puts("entry returned");
+        });
+        game_finished.store(true);
+    });
+
+    // Keep SDL/AppKit's window and event loop on the process main thread.
+    wp::video::run_event_loop(game_finished);
+    game_thread.join();
+#endif
     return 0;
 }
 
@@ -163,8 +181,6 @@ int main(int argc, char** argv) {
     std::signal(SIGILL, report_crash);
     std::signal(SIGFPE, report_crash);
     std::signal(SIGABRT, report_crash);
-    int result = 0;
-    wp::run_with_stack(size_t{512} << 20, [&] { result = run(argc, argv); });
-    return result;
+    return run(argc, argv);
 #endif
 }
