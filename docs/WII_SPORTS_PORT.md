@@ -37,7 +37,7 @@ Ghidra is used to identify function boundaries and verified symbols. The runtime
 3. Apply verified symbol names through `analysis/symbols.csv`.
 4. Run this repository's lifter to generate native C++ using the runtime's CPU and memory ABI.
 
-Ghidra decompiler pseudocode is not blindly linked as native code: it does not automatically satisfy the runtime ABI or PPC semantics. Existing Ghidra analysis is reusable as function metadata and symbols, while the lifter generates the runtime-compatible C++ functions.
+A prior export can be reused when its function CSV uses the expected `address,size` columns and its symbols CSV uses `address,name`. Ghidra decompiler pseudocode is not blindly linked as native code: it does not automatically satisfy the runtime ABI or PPC semantics. Existing Ghidra analysis is reusable as function metadata and symbols, while the lifter generates the runtime-compatible C++ functions.
 
 ## macOS setup
 
@@ -51,7 +51,7 @@ Requirements:
 
 On the Mac used for this project, the default Ghidra location is `~/Tools/ghidra_12.1.4_PUBLIC`. Override it with `GHIDRA_HOME` when needed.
 
-Place the user's disc dump at `games/wiisports/disc/wiisports.rvz`, or pass another path to `tools/build_wii_sports_macos.sh`.
+Place the user's disc dump at `games/wiisports/disc/wiisports.rvz`, or pass another path to `tools/build_wii_sports_macos.sh`. If you already have a complete extracted Wii Sports filesystem, place it under `games/wiisports/extracted/`; the helper will not require `nodtool` or a second extraction.
 
 Run:
 
@@ -59,7 +59,7 @@ Run:
 bash tools/build_wii_sports_macos.sh
 ```
 
-The script extracts the disc locally, runs the Ghidra import/export, translates the DOL and REL modules, recompiles DSP code, configures the native target, and builds `build/out/wiisports`. It then starts the game runtime with the extracted directory.
+The script extracts the disc only when no extracted filesystem exists. It reuses a non-empty `analysis/dol_functions.csv` export and the supplied symbol CSVs by default; set `WII_SPORTS_REIMPORT_GHIDRA=1` to rerun headless Ghidra. It then translates the DOL and REL modules, recompiles DSP code, configures the native target, builds and runs `build/out/wiisports`.
 
 ## Processor Interface MMIO
 
