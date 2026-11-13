@@ -391,7 +391,7 @@ void App::players_page(float width) {
     const std::vector<std::string> player_counts = {"1 player", "2 players", "3 players", "4 players"};
     int players = std::clamp(pref_int("players.players", 4), 1, 4);
 
-    ui::text("Party lineup", Font::Semibold, ui::size::kLead, p.text);
+    ui::text("Player lineup", Font::Semibold, ui::size::kLead, p.text);
     ui::gap(8);
     Card lineup(width);
     row(width, "Players in this players", "Set the local player count for this setup preset.", 220.0f, 36.0f, [&] {
@@ -473,7 +473,7 @@ void App::players_page(float width) {
     std::vector<std::string> preset_names;
     for (int i = 0; i < preset_count; ++i) {
         const std::string name = pref(indexed_key("players.preset.name.", i).c_str());
-        preset_names.push_back(name.empty() ? "Party " + std::to_string(i + 1) : name);
+        preset_names.push_back(name.empty() ? "Players " + std::to_string(i + 1) : name);
     }
     static int selected_preset = 0;
     if (!preset_names.empty()) selected_preset = std::clamp(selected_preset, 0, static_cast<int>(preset_names.size()) - 1);
