@@ -52,7 +52,7 @@ bool create_desktop_shortcut(const std::filesystem::path& target, const std::fil
         app = app.parent_path();
     }
     if (app.empty()) {
-        error = "Wii Party Recomp.app was not found";
+        error = "Wii Sports Recomp.app was not found";
         return false;
     }
     std::string home = environment_value("HOME");
