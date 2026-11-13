@@ -1,4 +1,8 @@
 #include "app.h"
+
+#ifndef WP_UPDATE_REPOSITORY
+#define WP_UPDATE_REPOSITORY ""
+#endif
 #include "titlebar.h"
 
 #include <algorithm>
@@ -1807,7 +1811,11 @@ void App::create_report() {
     launcher_message_failed_ = !out;
     launcher_message_ = format(t.report_done, utf8_of(path.filename()));
     SDL_OpenURL(folder_url(folder).c_str());
-    SDL_OpenURL("https://github.com/NVDEMU");
+    const std::string repository = WP_UPDATE_REPOSITORY;
+    const std::string support_url = repository.empty()
+        ? "https://github.com"
+        : "https://github.com/" + repository + "/issues/new";
+    SDL_OpenURL(support_url.c_str());
 }
 
 void App::textures_page(float width) {
