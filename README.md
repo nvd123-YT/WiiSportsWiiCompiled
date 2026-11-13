@@ -1,181 +1,64 @@
-# Wii Party Recomp
+# Wii Sports Recomp
 
-Static recompilation of Wii Party for native PC.
+A native macOS-first static recompilation target for **Wii Sports**, built on the reusable Wii hardware runtime in this repository.
 
-> [!NOTE]
-> **Project Status:** Alpha. The game boots, reaches every menu and plays complete Board Game Island sessions and every Free Play minigame. Progress is estimated at **93%** overall.
+<badge>Experimental integration branch</badge>
 
-![Project progress](docs/progress.svg)
+This branch is **not yet a playable release**. It adds a Wii Sports-specific target and macOS build pipeline. You must provide your own legally obtained Wii Sports disc dump. Game files, extracted data, generated code and Ghidra databases are not included.
 
-**[Download all platforms (Nightly releases)](https://github.com/NVDEMU/wiiparty-recomp-better/releases/tag/Nightly)** · Windows x64 · Linux x86_64 · macOS Apple Silicon and Intel
+## Target sports
 
-## Overview
+The port must preserve all five original sports: **Tennis, Baseball, Bowling, Golf and Boxing**. The input target includes keyboard, conventional gamepads and real Wii Remotes. Boxing also requires differentiated left/right punches, blocking/guarding and Nunchuk input. These are acceptance requirements, not completed compatibility claims.
 
-Wii Party Recomp translates the game's PowerPC code into C++ and compiles it into a native Windows or Linux program. The game and Nintendo SDK code run translated; only what depends on the console hardware is replaced, and the hardware itself (GPU, DSP audio, Bluetooth, IOS, disc and NAND) is reimplemented underneath. The game's own audio microcode is recompiled too.
+## Architecture
 
-No game files are distributed. The launcher builds the game on your computer from your own copy of the disc. Windows, Linux and macOS launchers are built by GitHub Actions; native runtime/gameplay still needs testing on real machines.
+- **Translated game code:** the Wii Sports DOL and REL modules are lifted to native C++.
+- **CPU/runtime:** shared PowerPC state, guest memory, MMIO, OS threads, interrupts and context handling.
+- **Graphics:** shared GX command processor and SDL3/OpenGL renderer for macOS.
+- **Audio:** shared DSP/audio pipeline with SDL3 host output.
+- **System services:** shared IOS, disc, NAND, EXI and module-loading layers.
+- **Input:** shared keyboard/gamepad/Wii Remote input services, to be validated against Wii Sports and its Boxing/Nunchuk requirements.
 
-## Current State & Metrics
+The game-specific files live under `games/wiisports/`. The shared hardware runtime lives under `engine/`. This target does not depend on Mario Kart Wii game-specific runtime code.
 
-The game runs at a locked **60 fps** (PAL60) at up to 6x the console's resolution, using about 1.5 CPU threads and about 600 MB of RAM.
+## macOS build
 
-Tracked in `games/wiiparty/analysis/progress.csv`:
+Requirements:
 
-| Component | Progress | Basis |
-| :--- | :--- | :--- |
-| **Recompilation Toolchain** | **100%** | The DOL and all 115 REL modules translate and build; every instruction kind the game uses is checked by 4,152 tests against an independent model. |
-| **System Runtime** | **100%** | OS, threads, interrupts, IPC, DVD, NAND, Bluetooth, the EXI bus, the SI ports, the GPU command FIFO and the pixel engine interrupts work, with no known unemulated parts. |
-| **Graphics (GX to D3D11)** | **100%** | Menus, text, 3D models, lit Miis, TEV, indirect textures, fog and EFB copies; no known fault in any minigame. |
-| **Audio Pipeline** | **100%** | Recompiled AX microcode; its output matches Dolphin's sample for sample on the title music; Wii Remote speaker sound is played. |
-| **Game Flow** | **90%** | A full 17-round Board Game Island game; every Free Play minigame played by hand, all 79 without faults. |
-| **Input System** | **80%** | Emulated Wii Remote over emulated Bluetooth; keyboard, mouse, up to four gamepads and real Wii Remotes; an optional window on the minigame explanation screens lists the PC key of each button. |
-| **PC Features** | **80%** | Single-file launcher, Mii batch import/export with duplicate checks, in-game options menu (F10), key bindings, save backup/restore/delete, texture-pack folder/ZIP import with metadata and conflict warnings, custom window sizes, VSync, linear/nearest scaling, optional lightweight post-process anti-aliasing, color/contrast enhancement, live FPS/frame-time overlay, searchable screenshots, and input replays. True ultrawide camera expansion and online play remain planned. |
+- Apple Xcode Command Line Tools.
+- CMake, Ninja, Python 3 and Git.
+- `nodtool` on `PATH` for Wii disc extraction.
+- Ghidra 12 with the GameCube Loader and the `PowerPC:BE:32:Gekko_Broadway` language.
+- A legally obtained Wii Sports disc image.
 
-### Known Limitations
+The default Ghidra path on the development Mac is `~/Tools/ghidra_12.1.4_PUBLIC`. Set `GHIDRA_HOME` to override it.
 
-- The modes other than Board Game Island and Free Play have been tried but not played through in full.
-- Real Wii Remotes paired with the PC are used by the game, but pointing with a physical sensor bar has not been tested.
-- Some PCs reach less than 60 fps on the Board Game Island and in minigames; performance work is in progress.
-- The launcher is not code-signed, so Windows Defender may flag it as a false positive. Every release lists its SHA-256 on GitHub, and the source code of the launcher is in this repository.
-
-## Installing
-
-1. Download `wiipartyrecomp-launcher.exe` from the [Nightly release](https://github.com/NVDEMU/wiiparty-recomp-better/releases/tag/Nightly). The optional `wiipartyrecomp-windows-x86_64.zip` contains the same launcher.
-2. Open it, check the install folder, choose your own copy of Wii Party (`.iso`, `.wbfs`, `.rvz`, `.ciso`, `.wia` or `.gcm`) and press **Install**.
-3. When it finishes, press **Play**.
-
-The launcher downloads any missing build tools from their official sites and checks each one against its published SHA-256. Nothing from the game is downloaded and nothing leaves your computer.
-
-**Internet requirement:** this fork currently publishes the online launcher only. On first install, it downloads build tools from their official sources and verifies their SHA-256; the optional offline Windows tool bundle is not included yet.
-
-| Requirement | |
-| :--- | :--- |
-| System | Windows 10 or 11, 64-bit |
-| Free space | About 5 GB |
-| Memory | 4 GB minimum, 8 GB or more recommended for the build |
-| Build time | About 10 minutes on a 6-core processor; longer on slower machines |
-
-### Linux (experimental)
-
-1. Install the build tools with your package manager:
-   - Debian and Ubuntu: `sudo apt install g++ cmake ninja-build python3 curl libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev wayland-protocols libdecor-0-dev libegl-dev libgl-dev libpulse-dev libasound2-dev libudev-dev libdbus-1-dev`
-   - Fedora: `sudo dnf install gcc-c++ cmake ninja-build python3 curl libX11-devel libXext-devel libXrandr-devel libXcursor-devel libXi-devel libXScrnSaver-devel libXtst-devel libxkbcommon-devel wayland-devel wayland-protocols-devel libdecor-devel mesa-libEGL-devel mesa-libGL-devel pulseaudio-libs-devel alsa-lib-devel systemd-devel dbus-devel`
-   - Arch: `sudo pacman -S --needed gcc cmake ninja python curl sdl3`
-2. Download `wiipartyrecomp-launcher-x86_64.AppImage` from the [Nightly release](https://github.com/NVDEMU/wiiparty-recomp-better/releases/tag/Nightly), make it executable (`chmod +x wiipartyrecomp-launcher-x86_64.AppImage`, or Properties > Permissions in your file manager) and open it.
-3. Choose your disc and press **Install**, then **Play**. The launcher downloads only nodtool; the game is installed in `~/.local/share/WiiPartyRecomp`.
-
-The AppImage targets x86_64 and needs glibc 2.38 or newer (Ubuntu 24.04, Debian 13, Fedora 39 or later); the game needs OpenGL 4.1. CI builds the package, but real-machine gameplay on Linux still needs tester validation.
-
-The build runs once, at low priority, with as many parallel jobs as your memory allows. The launcher checks the project's GitHub Nightly release and offers in-app updates. It verifies the downloaded platform asset against GitHub's SHA-256 digest before replacing the launcher; on macOS it stages and replaces the full .app bundle with a helper after the running app exits. Your installed disc data, saves, and settings are kept. A launcher update may still trigger a local runtime rebuild when the game/runtime has changed, but you do not need to manually download and reinstall every launcher build.
-
-### macOS (experimental)
-
-1. Install Apple's Command Line Tools if they are not already installed. In Terminal, run `xcode-select --install`; the game needs Apple's C++ compiler. Python, CMake, Ninja and the disc extraction tool are downloaded by the launcher.
-2. Download **[WiiPartyRecomp-macos-arm64.dmg](https://github.com/NVDEMU/wiiparty-recomp-better/releases/tag/Nightly)** on Apple Silicon, or **WiiPartyRecomp-macos-x86_64.dmg** on an Intel Mac, from the Nightly release.
-3. Open the DMG and drag **Wii Party Recomp.app** to Applications.
-4. Open the launcher, choose your own Wii Party disc image, and press **Install**. The launcher compiles the game locally.
-5. The app is ad-hoc signed but not Developer ID signed or notarized, so Gatekeeper may still warn. If macOS blocks the app, Control-click it in Finder and choose **Open**, then confirm the prompt.
-
-The DMG contains the launcher, not the game. You must provide your own legally obtained Wii Party disc image. The macOS CI build and DMG packaging pass on Apple Silicon and Intel. A full game playthrough on physical Macs still needs testing.
-
-## Controls
-
-Every key can be changed on the launcher's **Controls** page or in `games/wiiparty/settings.ini`. Up to four gamepads act as Wii Remotes 1 to 4, with gyroscope pointer, motion, rumble and player lights.
-
-| Wii Remote | Keyboard and mouse |
-| :--- | :--- |
-| Pointer | Mouse |
-| A / B | Left click, Enter or Space / Right click or Backspace |
-| 1 / 2 | 1 / 2 |
-| + / - / HOME | Plus / Minus / H |
-| D-pad | Arrow keys, W A S D |
-| Shake | Middle click or Left Shift |
-| Swing up / down | Mouse wheel, T / G |
-| Tilt | Q, E, R, F |
-| Upright or sideways grip | Tab |
-
-| PC key | Action |
-| :--- | :--- |
-| F6 | Start/stop input replay recording; saves `games/wiiparty/replays/last.wpr` |
-| F7 | Play the most recently recorded replay |
-| F9 | Screenshot to the `screenshots` folder |
-| F10 | Options menu over the game |
-| F11 | Full screen |
-| F12 | Frame capture for debugging |
-
-## Roadmap
-
-| Stage | When it is reached |
-| :--- | :--- |
-| **Alpha** (current) | The game runs from start to finish, with known bugs and features still missing. |
-| **Beta** | Every mode and all 80 minigames are checked, including the pair minigames; no known crashes; the known graphics faults in `docs/MINIGAMES.md` are fixed; the install is tested on several different PCs. |
-| **1.0** | No known bugs, overall progress around 95%, and a period of use by players without serious problems. |
-
-The project's scope is the original game, faithful and optimized.
-
-### Feature status and roadmap
-
-The first six selected launcher features now have working implementations; each row notes any remaining game-side integration needed. Detailed requirements and priorities are tracked in [the quality-of-life feature roadmap](docs/FEATURES_QOL.md).
-
-| Feature | Current implementation |
-| :--- | :--- |
-| **Controller Calibration Lab** | Implemented in the launcher: live gamepad stick/trigger readings, exposed motion-sensor readings, a rumble test, and persistent pointer dead-zone/digital activation controls consumed by the input engine. Wii Remote-specific pointer/speaker tests still need a launcher-facing runtime hook. |
-| **Player Profiles & Statistics** | Implemented: up to eight local named profiles, preferred-Mii links, successful launch counts and last-launch timestamps. Wins/placements are not guessed; trustworthy game-result events are not yet exposed. |
-| **Party Setup Wizard** | Implemented: one-to-four player lineup, profile per player, gamepad-to-player routing, keyboard-as-Player-1 option and persistent party presets. The board/minigame is still selected inside the original game. |
-| **Minigame Library** | Implemented: 86 entries covering all 79 standard minigames plus all 7 Challenge entries/variants, with search, category filters and favorites. Unsupported records and direct-launch controls are not exposed. |
-| **Living-Room Mode** | Implemented: fullscreen launcher, larger controls, gamepad navigation and keep-launcher-open behavior when starting the game. |
-| **Graphics Presets & Automatic Optimization** | Implemented: Performance, Balanced and Quality presets apply real video settings; Optimize uses the existing system/session recommendation heuristic rather than claiming a new benchmark. |
-| **True ultrawide rendering** | Still planned: correct wider camera framing and gameplay projection, rather than stretching the 16:9 image. Current resolution presets change window size only. |
-| **Online play with friends** | Not started: a fourth, green **Online** button next to the three buttons at the bottom of the main menu. There is no server: players connect directly, and the game exchanges only each player's inputs in lockstep. |
-
-The launcher has a Miis page that imports individual or batch Wii Mii files and whole Wii Mii databases (up to 100 Miis). Database updates retain an `.bak` copy of the previous database. The texture page imports PNG texture-pack folders, toggles packs on/off, and opens the active folder. The launcher does not bundle third-party or game-derived texture assets; add your own legally obtained packs. A Mii editor of its own is not planned.
-
-### Platforms
-
-- **Windows 10 and 11 x64:** launcher EXE and ZIP are built by CI; game/runtime should be tested on Windows hardware.
-- **Linux x86_64:** AppImage is built by CI; requires glibc 2.38+ and OpenGL 4.1. Full gameplay still needs testing across distributions and GPUs.
-- **macOS:** Apple Silicon and Intel DMGs pass CI and are ad-hoc signed, but not notarized. Full gameplay and controller behavior need testing on physical Macs.
-
-## Repository Layout
+Put your disc image at:
 
 ```
-├── engine/             # Core reusable Wii engine
-├── recompiler/         # PowerPC & DSP static recompilation pipelines
-├── games/wiiparty/     # Wii Party configuration and analysis
-├── launcher/           # Installer and settings (SDL3 + Dear ImGui)
-├── tools/              # Developer scripts
-├── tests/              # Test suites
-└── docs/               # Technical notes and progress
+games/wiisports/disc/wiisports.rvz
 ```
 
-## Building from Source
+Or pass another image path as the first argument to the build helper:
 
-Requirements: Python 3.11+, CMake 3.20+, Ninja, a MinGW-w64 GCC 13+ and [nodtool](https://github.com/encounter/nod).
-
-```bash
-nodtool extract games/wiiparty/disc/wiiparty.rvz games/wiiparty/extracted
-python tools/fetch_sdl.py
-python recompiler/unpack_rels.py
-python recompiler/recomp.py
-python recompiler/recomp_rel.py --all
-python recompiler/recomp.py
-python recompiler/dsp/recomp_dsp.py
-cmake -S . -B build/out -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/out --target wiiparty
-./build/out/wiiparty
+```sh
+bash tools/build_wii_sports_macos.sh "/path/to/your/Wii Sports disc.rvz"
 ```
 
-The launcher builds with the same compiler; CMake downloads its libraries:
+The helper extracts the disc locally, imports the DOL into Ghidra, exports function address/size metadata, lifts the DOL and REL modules, recompiles DSP code, configures the macOS target and builds `build/out/wiisports`. It then attempts to launch the game.
 
-```bash
-cmake -S launcher -B build/launcher -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/launcher
-```
+Manual build details and the compatibility checklist are in [docs/WII_SPORTS_PORT.md](docs/WII_SPORTS_PORT.md).
 
-Technical notes and the history of every change are in `docs/DECOMP_PROGRESS.md`. See `CONTRIBUTING.md` before opening a pull request.
+## Ghidra integration model
 
-## Legal & Licensing
+Ghidra function discovery and symbols are retained as inputs to the build. The runtime requires native functions with the `void f_XXXXXXXX(wp::Cpu&)` calling convention, so the repository's PPC lifter generates runtime-compatible C++ from the original DOL/REL instructions. Ghidra decompiler pseudocode is not linked directly.
 
-Independent project not affiliated with or endorsed by Nintendo. Users must supply their own legally obtained game files.
+The generated function list is written to `games/wiisports/analysis/dol_functions.csv`. Verified symbol names belong in `games/wiisports/analysis/symbols.csv`; hardware/OS replacements must be individually justified in `hle_functions.csv`.
 
-Licensed under the GPL-3.0-or-later. Third-party code and libraries are listed in `THIRD_PARTY_NOTICES.md`.
+## Status and limitations
+
+The shared engine already has general Wii runtime and GX/OpenGL, DSP, IOS, memory, disc, and input components. That does **not** prove Wii Sports compatibility. Wii Sports-specific MMIO, SDK calls, REL modules, graphics states, audio microcode, save paths and all five sports still need validation with the user's disc.
+
+Do not suppress an unknown MMIO write or unresolved guest function to make the game appear to continue. Implement the documented register or resolve the guest address to a translated DOL/REL function or a justified hardware service.
+
+No game data or proprietary assets are distributed by this repository.
