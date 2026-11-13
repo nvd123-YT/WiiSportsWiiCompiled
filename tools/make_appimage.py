@@ -20,7 +20,7 @@ Type=Application
 Name=Wii Sports Recomp
 Comment=Install and build Wii Sports from your own disc
 Exec=wiisportsrecomp-launcher
-Icon=wiipartyrecomp
+Icon=wiisportsrecomp
 Terminal=false
 Categories=Game;
 """
