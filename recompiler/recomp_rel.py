@@ -343,12 +343,14 @@ def main():
     parser.add_argument("--all", action="store_true")
     args = parser.parse_args()
     names = [p.stem for p in sorted(MODULES.glob("*.rel"))] if args.all else args.modules
-    if not names:
+    if not names and not args.all:
         parser.error("name at least one module or pass --all")
     dol_entries = load_dol_entries()
     for name in names:
         generate(name, dol_entries)
     write_table()
+    if not names:
+        print(f"no REL modules found under {MODULES}; generated an empty module table")
     return 0
 
 
