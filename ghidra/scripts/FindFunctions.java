@@ -81,7 +81,7 @@ public class FindFunctions extends GhidraScript {
                     long target = (word & 2) != 0
                             ? displacement & 0xFFFFFFFFL
                             : address + displacement;
-                    if ((target & 3) == 0 && target >= begin && target + 3 <= end) {
+                    if (target >= 0 && target <= 0xFFFFFFFCL && isExecutableWord(target)) {
                         candidates.add(target);
                     }
                 } else if (word == MFLR_R0) {
@@ -93,6 +93,15 @@ public class FindFunctions extends GhidraScript {
             }
         }
         return candidates;
+    }
+
+    private boolean isExecutableWord(long address) throws Exception {
+        if ((address & 3) != 0 || address > 0xFFFFFFFCL) {
+            return false;
+        }
+        MemoryBlock block = memory.getBlock(toAddr(address));
+        return block != null && block.isExecute() && block.isInitialized()
+                && address + 3 <= block.getEnd().getOffset();
     }
 
     private long prologueStart(long mflr, long begin, long end) throws Exception {
