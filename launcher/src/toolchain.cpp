@@ -407,7 +407,7 @@ std::vector<Step> Toolchain::preparation(const std::vector<ToolStatus>& tools, b
             break;
         case Packaging::Zip:
             unpack.program = kPython;
-            unpack.arguments = {"-c", "import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])",
+            unpack.arguments = {"-c", "import os,sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); d=sys.argv[2]; z.extractall(d); [os.chmod(os.path.join(d,*i.filename.split('/')), (i.external_attr >> 16) & 0o777) for i in z.infolist() if os.name != 'nt' and ((i.external_attr >> 16) & 0o111)],
                                 utf8_of(archive), utf8_of(destination)};
             break;
         case Packaging::SelfExtracting:

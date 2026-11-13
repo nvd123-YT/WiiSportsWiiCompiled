@@ -122,7 +122,7 @@ bool Project::outdated() const {
 double Project::needed_gigabytes() const {
     // Allow room for the native build and the launcher-managed JDK/Ghidra cache.
     if (built()) {
-        return 2.0;
+        return 4.0;
     }
     return extracted() ? 7.0 : 8.0;
 }
