@@ -1275,7 +1275,7 @@ void App::game_crash_modal() {
         const float total = log_width + play_width + close_width + gap * 2;
         ImGui::SetCursorScreenPos(ImVec2(at.x + inner - total, at.y));
         if (ui::button(t.game_crash_open_log, Kind::Secondary, 150.0f)) {
-            const std::string url = folder_url(project_.root / "logs" / "game-console.log");
+            const std::string url = folder_url(project_.root / "logs" / "game.log");
             SDL_OpenURL(url.c_str());
         }
         ImGui::SetCursorScreenPos(ImVec2(at.x + inner - close_width - gap - play_width, at.y));

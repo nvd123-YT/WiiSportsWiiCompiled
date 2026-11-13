@@ -263,8 +263,8 @@ constexpr Texts kEnglish = {
     "Save cropped copy (%1)",
     "Clear area",
     "Wii Sports stopped unexpectedly",
-    "The game exited with code %1. The launcher has reopened. Crash output is saved in logs/game-console.log and logs/game.log.",
-    "Open crash log",
+    "The game exited with code %1. The launcher has reopened. Crash diagnostics are saved in logs/game.log.",
+    "Open diagnostic log",
     "Play again",
     "Wii Sports closed.",
 };
@@ -528,8 +528,8 @@ constexpr Texts kSpanish = {
     "Guardar copia recortada (%1)",
     "Quitar zona",
     "Wii Sports se cerró inesperadamente",
-    "El juego terminó con el código %1. El lanzador se ha vuelto a abrir. Los detalles están guardados en logs/game-console.log y logs/game.log.",
-    "Abrir registro del fallo",
+    "El juego terminó con el código %1. El lanzador se ha vuelto a abrir. Los diagnósticos del fallo están guardados en logs/game.log.",
+    "Abrir registro de diagnóstico",
     "Volver a jugar",
     "Wii Sports se cerró.",
 };
@@ -794,8 +794,8 @@ constexpr Texts kGalician = {
     "Gardar copia recortada (%1)",
     "Quitar zona",
     "Wii Sports pechouse inesperadamente",
-    "O xogo rematou co código %1. O lanzador volveu abrirse. Os detalles están gardados en logs/game-console.log e logs/game.log.",
-    "Abrir rexistro do fallo",
+    "O xogo rematou co código %1. O lanzador volveu abrirse. Os diagnósticos do fallo están gardados en logs/game.log.",
+    "Abrir rexistro de diagnóstico",
     "Xogar outra vez",
     "Wii Sports pechouse.",
 };
