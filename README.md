@@ -2,7 +2,7 @@
 
 A native macOS-first static recompilation target for **Wii Sports**, built on the reusable Wii hardware runtime in this repository.
 
-<badge>Experimental integration branch</badge>
+> **Status:** Experimental integration branch; not yet a playable release.
 
 This branch is **not yet a playable release**. It adds a Wii Sports-specific target and macOS build pipeline. You must provide your own legally obtained Wii Sports disc dump. Game files, extracted data, generated code and Ghidra databases are not included.
 
